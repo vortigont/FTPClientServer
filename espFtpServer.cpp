@@ -1030,9 +1030,9 @@ int32_t FtpServer::allocateBuffer(int32_t desiredBytes)
   if (maxBlock - desiredBytes < 0)
     desiredBytes = maxBlock;
 
-  // leave at least (10% of heap) as reserve
-  if (maxHeap - desiredBytes < (maxHeap / 10))
-    desiredBytes -= (maxHeap / 10);
+  // leave at least (20% of heap) as reserve
+  if (maxHeap - desiredBytes < (maxHeap / 5))
+    desiredBytes -= (maxHeap / 5);
 
   // round down on 4byte bound
   desiredBytes &= ~3;

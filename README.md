@@ -1,29 +1,41 @@
-# esp8266FTPServer
-Simple FTP Server for using esp8266/esp32 SPIFFs
-I've modified a FTP server from arduino/wifi shield to work with esp8266/esp32
+# espFTPServer
+Simple FTP Server for using esp8266/esp32 
+I've modified a FTP server from arduino/wifi shield to work with the esp826. It should also work on the esp32. LittleFS with directory handling is supported since SPIFFS has been marked deprecated.
+This allows you to FTP into your esp8266/esp32 and access/modify the LittleFS/SPIFFS folder/data.
+I've tested it with Filezilla, and it works (upload/download/rename/delete). There's no create/modify directory support in SPIFFS but in LittleFS there is!
 
-It should support esp32 and is also using LittleFS as SPIFFS has become deprecated.
-Use 
+## Features
+* Supports active and passive FTP
+* Works with LittleFS and SPIFFS
+* Supports Directories in LittleFS
+
+## Limitations
+* It only allows one ftp control and one data connection at a time. You need to setup Filezilla (or other clients) to respect that, i.e. only allow **1** connection. (In FileZilla go to File/Site Manager then select your site. In Transfer Settings, check "Limit number of simultaneous connections" and set the maximum to 1.)
+* It does not support encryption, so you'll have to disable any form of encryption...
+
+## Useage
+
+### Construct an espFTPServer
+Select the desired FS via the contructor 
 ```cpp
-#define esp8266FTPServer_SPIFFS
-#include <esp8266FTPServer.h>
+#include <espFTPServer.h>
+#include <LittleFS.h>
+
+espFTPServer ftpServer(LittleFS); // construct with LittleFS
+// or
+espFTPServer ftpServer(SPIFFS);   // construct with SPIFFS if you need to for backward compatibility
 ```
-to switch back to SPIFFS, if you need to.
 
-This allows you to FTP into your esp8266/esp32 and access/modify the LittleFS/SPIFFS folder/data...it only allows one ftp connection at a time....very simple for now...
+### Configure username/password
+```cpp
+ftpServer.begin("username", "password");
+```
 
-I've tested it with Filezilla, and the basics work (upload/download/rename/delete). There's no create/modify directory support in SPIFFS but in LittleFS there is!
-
-You need to setup Filezilla (or other client) to only allow **1** connection..
-To force FileZilla to use the primary connection for data transfers:
-Go to File/Site Manager then select your site.
-In Transfer Settings, check "Limit number of simultaneous connections" and set the maximum to 1
-
-It also only supports Passive ftp mode.
-
-It does NOT support any encryption, so you'll have to disable any form of encryption...
-
-feel free to try it out (sample provided)....unzip into your arduino library directory (and restart arduino ide).
+### Handle by calling frequently
+```cpp
+ftpServer.handleFtp(); // place this in e.g. loop()
+```
 
 
-this is the original project on github I worked from: https://github.com/gallegojm/Arduino-Ftp-Server/tree/master/FtpServer
+## Notes
+I forked from https://github.com/nailbuster/esp8266FTPServer which itself was forked from: https://github.com/gallegojm/Arduino-Ftp-Server/tree/master/FtpServer

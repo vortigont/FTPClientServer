@@ -51,7 +51,7 @@
 #define FTP_DEBUG_MSG(...)
 #endif
 
-#define FTP_SERVER_VERSION "0.9-20200525"
+#define FTP_SERVER_VERSION "0.9.2-20200526"
 
 #define FTP_CTRL_PORT 21         // Command port on wich server is listening
 #define FTP_DATA_PORT_PASV 50009 // Data port in passive mode
