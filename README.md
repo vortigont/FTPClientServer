@@ -14,7 +14,7 @@ I've tested it with Filezilla, and it works (upload/download/rename/delete). The
 * It only allows one ftp control and one data connection at a time. You need to setup Filezilla (or other clients) to respect that, i.e. only allow **1** connection. (In FileZilla go to File/Site Manager then select your site. In Transfer Settings, check "Limit number of simultaneous connections" and set the maximum to 1.)
 * It does not support encryption, so you'll have to disable any form of encryption...
 
-## Useage
+## Usage
 
 ### Construct an espFTPServer
 Select the desired FS via the contructor 
