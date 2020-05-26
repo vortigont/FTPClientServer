@@ -1092,6 +1092,7 @@ bool FtpServer::doStore()
     FTP_DEBUG_MSG("Transfer %d bytes client->fs", navail);
     navail = data.read(fileBuffer, navail);
     file.write(fileBuffer, navail);
+    bytesTransfered += navail;
   }
 
   if (!data.connected() && (navail <= 0))
