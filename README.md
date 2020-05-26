@@ -1,5 +1,6 @@
 # espFTPServer
-Simple FTP Server for using esp8266/esp32 
+Simple FTP Server for the esp8266/esp32 with LittleFS and SPIFFS support.
+
 I've modified a FTP server from arduino/wifi shield to work with the esp826. It should also work on the esp32. LittleFS with directory handling is supported since SPIFFS has been marked deprecated.
 This allows you to FTP into your esp8266/esp32 and access/modify the LittleFS/SPIFFS folder/data.
 I've tested it with Filezilla, and it works (upload/download/rename/delete). There's no create/modify directory support in SPIFFS but in LittleFS there is!
