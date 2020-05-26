@@ -25,8 +25,8 @@
 
 #include <espFtpServer.h>
 
-const char *ssid PROGMEM = "";
-const char *password PROGMEM = "";
+const char *ssid PROGMEM = "YOUR_SSID";
+const char *password PROGMEM = "YOUR_PASS";
 
 // Since SPIFFS is becoming deprecated but might still be in
 // use in your Projects, tell the FtpServer to use SPIFFS

@@ -103,9 +103,6 @@ void FtpServer::iniVariables()
 
 void FtpServer::handleFTP()
 {
-  // if ((int32_t)(millisDelay - millis()) > 0)
-  //   return;
-
   //
   // control connection state sequence is
   //  cInit
@@ -130,6 +127,10 @@ void FtpServer::handleFTP()
   //    V
   //  cProcess
   //
+
+  // if ((int32_t)(millisDelay - millis()) > 0)
+  //   return;
+
   if (cmdState == cInit)
   {
     if (control.connected())
@@ -766,15 +767,16 @@ int8_t FtpServer::processCommand()
           transferState = tRetrieve;
           millisBeginTrans = millis();
           bytesTransfered = 0;
-          if (allocateBuffer(file.size()) <= 0)
+          uint32_t fs = file.size();
+          if (allocateBuffer(fs > 32768 ? 32768 : fs))
           {
-            closeTransfer();
-            FTP_SEND_MSG(451, "Internal error. Not enough memory.");
+            FTP_DEBUG_MSG("Sending file '%s'", path.c_str());
+            FTP_SEND_MSG(150, "%lu bytes to download", fs);
           }
           else
           {
-            FTP_DEBUG_MSG("Sending file '%s'", path.c_str());
-            FTP_SEND_MSG(150, "%lu bytes to download", (uint32_t)file.size());
+            closeTransfer();
+            FTP_SEND_MSG(451, "Internal error. Not enough memory.");
           }
         }
       }
@@ -813,15 +815,15 @@ int8_t FtpServer::processCommand()
           transferState = tStore;
           millisBeginTrans = millis();
           bytesTransfered = 0;
-          if (allocateBuffer(2048) <= 0)
-          {
-            closeTransfer();
-            FTP_SEND_MSG(451, "Internal error. Not enough memory.");
-          }
-          else
+          if (allocateBuffer(2048))
           {
             FTP_DEBUG_MSG("Receiving file '%s' => %s", parameters.c_str(), path.c_str());
             FTP_SEND_MSG(150, "Connected to port %d", dataPort);
+          }
+          else
+          {
+            closeTransfer();
+            FTP_SEND_MSG(451, "Internal error. Not enough memory.");
           }
         }
       }
@@ -1022,28 +1024,22 @@ int8_t FtpServer::dataConnect()
   return rc;
 }
 
-int32_t FtpServer::allocateBuffer(int32_t desiredBytes)
+uint16_t FtpServer::allocateBuffer(uint16_t desiredBytes)
 {
-  // allocate a large buffer for file transfers
-  int32_t maxBlock = ESP.getMaxFreeBlockSize();
-  int32_t maxHeap = ESP.getFreeHeap();
-  if (maxBlock - desiredBytes < 0)
+  // allocate a big buffer for file transfers
+  uint16_t maxBlock = ESP.getMaxFreeBlockSize() / 2;
+
+  if (desiredBytes > maxBlock)
     desiredBytes = maxBlock;
 
-  // leave at least (20% of heap) as reserve
-  if (maxHeap - desiredBytes < (maxHeap / 5))
-    desiredBytes -= (maxHeap / 5);
-
-  // round down on 4byte bound
-  desiredBytes &= ~3;
   while (fileBuffer == NULL && desiredBytes > 0)
   {
     fileBuffer = (uint8_t *)malloc(desiredBytes);
     if (NULL == fileBuffer)
     {
       FTP_DEBUG_MSG("Cannot allocate buffer for file transfer, re-trying");
-      // try less
-      desiredBytes -= 16;
+      // try with less bytes
+      desiredBytes--;
     }
     else
     {
@@ -1061,18 +1057,19 @@ void FtpServer::freeBuffer()
 
 bool FtpServer::doRetrieve()
 {
-  // how many bytes to transfer
-  int32_t nb = (file.size() - bytesTransfered);
-  if (nb > fileBufferSize)
-    nb = fileBufferSize;
-
   // data connection lost or no more bytes to transfer?
-  if (!data.connected() || (nb <= 0))
+  if (!data.connected() || (bytesTransfered >= file.size()))
   {
     return false;
   }
 
+  // how many bytes to transfer left?
+  uint32_t nb = (file.size() - bytesTransfered);
+  if (nb > fileBufferSize)
+    nb = fileBufferSize;
+
   // transfer the file
+  FTP_DEBUG_MSG("Transfer %d bytes fs->client", nb);
   nb = file.readBytes((char *)fileBuffer, nb);
   if (nb > 0)
   {
@@ -1086,27 +1083,25 @@ bool FtpServer::doRetrieve()
 bool FtpServer::doStore()
 {
   // Avoid blocking by never reading more bytes than are available
-  int32_t navail = data.available();
+  int16_t navail = data.available();
 
   if (navail > 0)
   {
     if (navail > fileBufferSize)
       navail = fileBufferSize;
-
-    int16_t nb = data.read(fileBuffer, navail);
-    FTP_DEBUG_MSG("Transfer %d bytes at one batch (buf %d bytes)", nb, nsavail);
-    if (nb > 0)
-    {
-      file.write(fileBuffer, nb);
-      bytesTransfered += nb;
-    }
+    FTP_DEBUG_MSG("Transfer %d bytes client->fs", navail);
+    navail = data.read(fileBuffer, navail);
+    file.write(fileBuffer, navail);
   }
+
   if (!data.connected() && (navail <= 0))
   {
+    // connection closed or no more bytes to read
     return false;
   }
   else
   {
+    // inidcate, we need to be called again
     return true;
   }
 }

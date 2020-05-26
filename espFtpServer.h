@@ -51,7 +51,7 @@
 #define FTP_DEBUG_MSG(...)
 #endif
 
-#define FTP_SERVER_VERSION "0.9.2-20200526"
+#define FTP_SERVER_VERSION "0.9.3-20200526"
 
 #define FTP_CTRL_PORT 21         // Command port on wich server is listening
 #define FTP_DATA_PORT_PASV 50009 // Data port in passive mode
@@ -105,10 +105,10 @@ private:
   bool doStore();
   void closeTransfer();
   void abortTransfer();
-  int32_t allocateBuffer(int32_t desiredBytes);
+  uint16_t allocateBuffer(uint16_t desiredBytes);
   void freeBuffer();
 
-  String getPathName(const String& param, bool includeLast = false);
+  String getPathName(const String &param, bool includeLast = false);
   String getFileName(const String &param, bool fullFilePath = false);
   String makeDateTimeStr(time_t fileTime);
   int8_t readChar();
@@ -124,12 +124,12 @@ private:
   uint16_t dataPort =          // holds our PASV port number or the port number provided by PORT
       FTP_DATA_PORT_PASV;
 
-  uint32_t command;       // numeric command code of command sent by the client
-  String cmdLine;         // command line as read from client
-  String cmdString;       // command as textual representation
-  String parameters;      // parameters sent by client
-  String cwd;             // the current directory
-  String rnFrom;          // previous command was RNFR, this is the source file name
+  uint32_t command;  // numeric command code of command sent by the client
+  String cmdLine;    // command line as read from client
+  String cmdString;  // command as textual representation
+  String parameters; // parameters sent by client
+  String cwd;        // the current directory
+  String rnFrom;     // previous command was RNFR, this is the source file name
 
   internalState cmdState, // state of ftp control connection
       transferState;      // state of ftp data connection
@@ -139,7 +139,7 @@ private:
       millisBeginTrans,         // store time of beginning of a transaction
       bytesTransfered;          //
   uint8_t *fileBuffer = NULL;   // pointer to buffer for file transfer (by allocateBuffer)
-  int32_t fileBufferSize;       // size of buffer
+  uint16_t fileBufferSize;      // size of buffer
   String _FTP_USER;             // usename
   String _FTP_PASS;             // password
 };

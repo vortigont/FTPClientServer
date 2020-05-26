@@ -16,17 +16,16 @@
 
 */
 #ifdef ESP8266
-#include <LittleFS.h>
 #include <ESP8266WiFi.h>
 #elif defined ESP32
 #include <WiFi.h>
-#include <SPIFFS.h>
 #endif
 
+#include <LittleFS.h>
 #include <espFtpServer.h>
 
-const char *ssid PROGMEM = "";
-const char *password PROGMEM = "";
+const char *ssid PROGMEM = "YOUR_SSID";
+const char *password PROGMEM = "YOUR_PASS";
 
 // tell the FtpServer to use LittleFS
 FtpServer ftpSrv(LittleFS);
