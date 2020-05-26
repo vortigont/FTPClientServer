@@ -22,19 +22,19 @@ Select the desired FS via the contructor
 #include <espFTPServer.h>
 #include <LittleFS.h>
 
-espFTPServer ftpServer(LittleFS); // construct with LittleFS
+FtpServer ftpSrv(LittleFS); // construct with LittleFS
 // or
-espFTPServer ftpServer(SPIFFS);   // construct with SPIFFS if you need to for backward compatibility
+FtpServer ftpSrv(SPIFFS);   // construct with SPIFFS if you need to for backward compatibility
 ```
 
 ### Configure username/password
 ```cpp
-ftpServer.begin("username", "password");
+ftpSrv.begin("username", "password");
 ```
 
 ### Handle by calling frequently
 ```cpp
-ftpServer.handleFtp(); // place this in e.g. loop()
+ftpSrv.handleFTP(); // place this in e.g. loop()
 ```
 
 
