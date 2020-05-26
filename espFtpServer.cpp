@@ -21,8 +21,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// code 330252-304168 = 26084 with SPIFFS
-// code 324512-298440 = 26072 with LittleFS
 #include "espFtpServer.h"
 
 #ifdef ESP8266
@@ -1027,27 +1025,25 @@ int8_t FtpServer::dataConnect()
 int32_t FtpServer::allocateBuffer(int32_t desiredBytes)
 {
   // allocate a large buffer for file transfers
-  // --> max performance!
-  int32_t maxBlock = ESP.getMaxFreeBlockSize() - 32; /* FIXME: there seems to be a bug! at least 16 bytes less */
+  int32_t maxBlock = ESP.getMaxFreeBlockSize();
   int32_t maxHeap = ESP.getFreeHeap();
-  if (maxBlock - desiredBytes < 16)
-    desiredBytes = ((maxBlock - 16) & ~16);
-  // but leave (10% of heap) as reserve
+  if (maxBlock - desiredBytes < 0)
+    desiredBytes = maxBlock;
+
+  // leave at least (10% of heap) as reserve
   if (maxHeap - desiredBytes < (maxHeap / 10))
     desiredBytes -= (maxHeap / 10);
 
-  // make 16byte bound
-  desiredBytes &= ~16;
-
-  FTP_DEBUG_MSG("maxB = %li, maxH = %li, desired = %li", maxBlock, maxHeap, desiredBytes);
-
-  if (desiredBytes > 0)
+  // round down on 4byte bound
+  desiredBytes &= ~3;
+  while (fileBuffer == NULL && desiredBytes > 0)
   {
     fileBuffer = (uint8_t *)malloc(desiredBytes);
     if (NULL == fileBuffer)
     {
-      FTP_DEBUG_MSG("Cannot allocate buffer for retrieve file");
-      fileBufferSize = 0;
+      FTP_DEBUG_MSG("Cannot allocate buffer for file transfer, re-trying");
+      // try less
+      desiredBytes -= 16;
     }
     else
     {
@@ -1098,7 +1094,7 @@ bool FtpServer::doStore()
       navail = fileBufferSize;
 
     int16_t nb = data.read(fileBuffer, navail);
-    FTP_DEBUG_MSG("Transfer %d bytes at one batch (buf %d bytes)", nb, navail);
+    FTP_DEBUG_MSG("Transfer %d bytes at one batch (buf %d bytes)", nb, nsavail);
     if (nb > 0)
     {
       file.write(fileBuffer, nb);
