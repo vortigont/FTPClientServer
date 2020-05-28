@@ -22,13 +22,13 @@
 #endif
 
 #include <LittleFS.h>
-#include <espFtpServer.h>
+#include <FTPServer.h>
 
 const char *ssid PROGMEM = "YOUR_SSID";
 const char *password PROGMEM = "YOUR_PASS";
 
 // tell the FtpServer to use LittleFS
-FtpServer ftpSrv(LittleFS);
+FTPServer ftpSrv(LittleFS);
 
 void setup(void)
 {

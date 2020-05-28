@@ -23,14 +23,14 @@
 #include <SPIFFS.h>
 #endif
 
-#include <espFtpServer.h>
+#include <FTPServer.h>
 
 const char *ssid PROGMEM = "YOUR_SSID";
 const char *password PROGMEM = "YOUR_PASS";
 
 // Since SPIFFS is becoming deprecated but might still be in
 // use in your Projects, tell the FtpServer to use SPIFFS
-FtpServer ftpSrv(SPIFFS);
+FTPServer ftpSrv(SPIFFS);
 
 void setup(void)
 {
