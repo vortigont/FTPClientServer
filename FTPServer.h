@@ -30,7 +30,7 @@
  **                                                                            **
  *******************************************************************************/
 #include "FTPCommon.h"
-#define FTP_SERVER_VERSION "0.9.3-20200526"
+#define FTP_SERVER_VERSION "0.9.6-20200526"
 
 class FTPServer : public FTPCommon
 {
