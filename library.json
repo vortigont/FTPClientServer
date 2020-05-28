@@ -1,6 +1,6 @@
 {
-	"name": "espFTPServer",
-	"description": "Simple FTP Server for using SPIFFS or LittleFS",
+	"name": "FTP",
+	"description": "Simple FTP Server and Client for using SPIFFS or LittleFS",
 	"keywords": "esp8266, ftp, spiffs, littlefs",
 	"authors":
 		{
