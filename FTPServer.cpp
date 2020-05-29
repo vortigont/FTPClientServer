@@ -754,9 +754,9 @@ int8_t FTPServer::processCommand()
           millisBeginTrans = millis();
           bytesTransfered = 0;
           uint32_t fs = file.size();
-          if (allocateBuffer(fs > 32768 ? 32768 : fs))
+          if (allocateBuffer(4 * TCP_MSS))
           {
-            FTP_DEBUG_MSG("Sending file '%s'", path.c_str());
+            FTP_DEBUG_MSG("Sending file '%s' (%lu bytes)", path.c_str(), fs);
             FTP_SEND_MSG(150, "%lu bytes to download", fs);
           }
           else
@@ -801,7 +801,7 @@ int8_t FTPServer::processCommand()
           transferState = tStore;
           millisBeginTrans = millis();
           bytesTransfered = 0;
-          if (allocateBuffer(2048))
+          if (allocateBuffer(4 * TCP_MSS))
           {
             FTP_DEBUG_MSG("Receiving file '%s' => %s", parameters.c_str(), path.c_str());
             FTP_SEND_MSG(150, "Connected to port %d", dataPort);

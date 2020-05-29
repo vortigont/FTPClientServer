@@ -7,6 +7,8 @@
 #include <WString.h>
 #include <PolledTimeout.h>
 
+#define FTP_SERVER_VERSION "0.9.7-20200529"
+
 #define FTP_CTRL_PORT 21         // Command port on which server is listening
 #define FTP_DATA_PORT_PASV 50009 // Data port in passive mode
 #define FTP_TIME_OUT 5           // Disconnect client after 5 minutes of inactivity
