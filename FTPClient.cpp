@@ -160,7 +160,7 @@ void FTPClient::handleFTP()
       millisBeginTrans = millis();
       bytesTransfered = 0;
       ftpState = cTransfer;
-      allocateBuffer(4 * TCP_MSS);
+      allocateBuffer(TCP_MSS);
       if (_direction & FTP_PUT_NONBLOCKING)
       {
         CLIENT_SEND("STOR %s", _remoteFileName.c_str());
