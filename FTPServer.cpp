@@ -559,6 +559,15 @@ int8_t FTPServer::processCommand()
     {
       FTP_SEND_MSG(150, "Accepted data connection");
       uint16_t dirCount = 0;
+
+      // filter out possible command parameters like "-a", given by some clients
+      // like FuseFS
+      int8_t dashPos = path.lastIndexOf(F("-"));
+      if (dashPos > 0)
+      {
+        path.remove(dashPos);
+      }
+      FTP_DEBUG_MSG("Listing content of >%s<", path.c_str());
       Dir dir = THEFS.openDir(path);
       while (dir.next())
       {
@@ -568,24 +577,31 @@ int8_t FTPServer::processCommand()
         if (cwd == FPSTR(aSlash) && fn[0] == '/')
           fn.remove(0, 1);
         isDir = dir.isDirectory();
+        file = dir.openFile("r");
+        String fileTime = makeDateTimeStr(file.getLastWrite());
+        file.close();
+
         if (FTP_CMD(LIST) == command)
         {
-          if (isDir)
-          {
-            data.printf_P(PSTR("+d\r\n,\t%s\r\n"), fn.c_str());
-          }
-          else
-          {
-            data.printf_P(PSTR("+r,s%lu\r\n,\t%s\r\n"), (uint32_t)dir.fileSize(), fn.c_str());
-          }
+          // unixperms  type userid   groupid      size time & date  name
+          // drwxrwsr-x    2 111      117          4096 Apr 01 12:45 aDirectory
+          // -rw-rw-r--    1 111      117        875315 Mar 23 17:29 aFile
+          data.printf_P(PSTR("%crw%cr-%cr-%c    %c    0    0  %8lu %s %s\r\n"),
+                        isDir ? 'd' : '-',
+                        isDir ? 'x' : '-',
+                        isDir ? 'x' : '-',
+                        isDir ? 'x' : '-',
+                        isDir ? '2' : '1',
+                        isDir ? 0 : (uint32_t)dir.fileSize(),
+                        fileTime.c_str(),
+                        fn.c_str());
+          //data.printf_P(PSTR("+r,s%lu\r\n,\t%s\r\n"), (uint32_t)dir.fileSize(), fn.c_str());
         }
         else if (FTP_CMD(MLSD) == command)
         {
           // "modify=20170122163911;type=dir;UNIX.group=0;UNIX.mode=0775;UNIX.owner=0; dirname"
           // "modify=20170121000817;size=12;type=file;UNIX.group=0;UNIX.mode=0644;UNIX.owner=0; filename"
-          file = dir.openFile("r");
-          data.printf_P(PSTR("modify=%s;UNIX.group=0;UNIX.owner=0;UNIX.mode="), makeDateTimeStr(file.getLastWrite()).c_str());
-          file.close();
+          data.printf_P(PSTR("modify=%s;UNIX.group=0;UNIX.owner=0;UNIX.mode="), fileTime.c_str());
           if (isDir)
           {
             data.printf_P(PSTR("0755;type=dir; "));
@@ -1193,7 +1209,18 @@ String FTPServer::makeDateTimeStr(time_t ft)
 {
   struct tm *_tm = gmtime(&ft);
   String tmp;
-  tmp.reserve(17);
-  strftime((char *)tmp.c_str(), 17, "%Y%m%d%H%M%S", _tm);
+  if (FTP_CMD(MLSD) == command)
+  {
+    tmp.reserve(17);
+    strftime((char *)tmp.c_str(), 17, "%Y%m%d%H%M%S", _tm);
+  }
+  else if (FTP_CMD(LIST) == command)
+  {
+    // "%h %d %H:%M" for file dates of the current year
+    // "%h %d  %Y"   for file dates of any other years
+    // FIXME ignore year for now...
+    tmp.reserve(13);
+    strftime((char *)tmp.c_str(), 13, "%h %d %H:%M", _tm);
+  }
   return tmp;
 }
