@@ -108,7 +108,7 @@ protected:
 
 	int8_t controlConnect(); // connects to ServerInfo, returns -1: no connection possible, +1: connection established
 
-	bool waitFor(const int16_t respCode, const __FlashStringHelper *errorString = nullptr, uint16_t timeOut = 10000);
+	bool waitFor(const int16_t respCode, const __FlashStringHelper *errorString = nullptr, uint32_t timeOut = 10000);
 };
 
 // basically just the same as FTPClient but has a different connect() method to account for SSL/TLS
