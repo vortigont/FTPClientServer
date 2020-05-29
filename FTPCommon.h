@@ -5,8 +5,9 @@
 #include <FS.h>
 #include <WiFiClient.h>
 #include <WString.h>
+#include <PolledTimeout.h>
 
-#define FTP_CTRL_PORT 21         // Command port on wich server is listening
+#define FTP_CTRL_PORT 21         // Command port on which server is listening
 #define FTP_DATA_PORT_PASV 50009 // Data port in passive mode
 #define FTP_TIME_OUT 5           // Disconnect client after 5 minutes of inactivity
 #define FTP_CMD_SIZE 127         // allow max. 127 chars in a received command
@@ -81,6 +82,8 @@
 #define FTP_CMD_LE_SYST 0x54535953      // "SYST" as uint32_t (little endian)
 #define FTP_CMD_BE_SYST 0x53595354      // "SYST" as uint32_t (big endian)
 
+using esp8266::polledTimeout::oneShotMs; // import the type to the local namespace
+
 class FTPCommon
 {
 public:
@@ -89,11 +92,11 @@ public:
     FTPCommon(FS &_FSImplementation);
     virtual ~FTPCommon();
 
-    // stops the FTP Server or Client
+    // stops the FTP Server or Client, i.e. stops control and data connections
     virtual void stop();
 
-    // set a timeout in seconds
-    void setTimeout(uint16_t timeout = FTP_TIME_OUT * 60);
+    // set disconnect timeout in millisecords
+    void setTimeout(uint32_t timeoutMs = FTP_TIME_OUT * 60 * 1000);
 
     // needs to be called frequently (e.g. in loop() )
     // to process ftp requests
@@ -112,8 +115,8 @@ protected:
     virtual int8_t dataConnect(); // connects to dataIP:dataPort, returns -1: no data connection possible, +1: data connection established
     bool parseDataIpPort(const char *p);
 
-    uint16_t sTimeOut = // disconnect after 5 min of inactivity
-        FTP_TIME_OUT * 60;
+    uint32_t sTimeOutMs; // disconnect timeout
+    oneShotMs aTimeout;  // timeout from esp8266 core library
 
     bool doFiletoNetwork();
     bool doNetworkToFile();

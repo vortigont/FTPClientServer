@@ -56,7 +56,10 @@ static const char aSpace[] PROGMEM = " ";
 static const char aSlash[] PROGMEM = "/";
 
 // constructor
-FTPServer::FTPServer(FS &_FSImplementation) : FTPCommon(_FSImplementation) {}
+FTPServer::FTPServer(FS &_FSImplementation) : FTPCommon(_FSImplementation)
+{
+  aTimeout.resetToNeverExpires();
+}
 
 void FTPServer::begin(const String &uname, const String &pword)
 {
@@ -151,7 +154,7 @@ void FTPServer::handleFTP()
       control = controlServer.available();
 
       // wait 10s for login command
-      updateTimeout(10);
+      aTimeout.reset(10 * 1000);
       cmdState = cCheck;
     }
   }
@@ -185,7 +188,7 @@ void FTPServer::handleFTP()
   else if (cmdState == cLoginOk) // tell client "Login ok!"
   {
     FTP_SEND_MSG(230, "Login successful.");
-    updateTimeout(sTimeOut);
+    aTimeout.reset(sTimeOutMs);
     cmdState = cProcess;
   }
 
@@ -194,12 +197,13 @@ void FTPServer::handleFTP()
   //
   else if (readChar() > 0)
   {
-    // enforce USER than PASS commands before anything else
-    if (((cmdState == cUserId) && (FTP_CMD(USER) != command)) ||
-        ((cmdState == cPassword) && (FTP_CMD(PASS) != command)))
+    // enforce USER than PASS commands before anything else except the FEAT command
+    // that should be supported to indicate server features even before login
+    if ((FTP_CMD(FEAT) != command) && (((cmdState == cUserId) && (FTP_CMD(USER) != command)) ||
+                                       ((cmdState == cPassword) && (FTP_CMD(PASS) != command))))
     {
       FTP_SEND_MSG(530, "Please login with USER and PASS.");
-      FTP_DEBUG_MSG("ignoring before login: cwd=%s cmd[%x]=%s, params='%s'", cwd.c_str(), command, cmdString.c_str(), parameters.c_str());
+      FTP_DEBUG_MSG("ignoring before login: command %s [%x], params='%s'", cmdString.c_str(), command, parameters.c_str());
       command = 0;
       return;
     }
@@ -225,7 +229,7 @@ void FTPServer::handleFTP()
         if (_FTP_PASS.length())
         {
           // wait 10s for PASS command
-          updateTimeout(10);
+          aTimeout.reset(10 * 1000);
           FTP_SEND_MSG(331, "Please specify the password.");
           cmdState = cPassword;
         }
@@ -240,7 +244,7 @@ void FTPServer::handleFTP()
       }
       else
       {
-        updateTimeout(sTimeOut);
+        aTimeout.reset(sTimeOutMs);
       }
     }
   }
@@ -259,7 +263,7 @@ void FTPServer::handleFTP()
     }
 
     // check for timeout
-    if (!((int32_t)(millisEndConnection - millis()) > 0))
+    if (aTimeout.expired())
     {
       FTP_SEND_MSG(530, "Timeout.");
       FTP_DEBUG_MSG("client connection timed out");
@@ -308,7 +312,7 @@ int8_t FTPServer::processCommand()
 
   // make the full path of parameters (even if this makes no sense for all commands)
   String path = getFileName(parameters, true);
-  FTP_DEBUG_MSG("processing: cmd=%s[%x], params='%s' (cwd='%s')", cmdString.c_str(), command, parameters.c_str());
+  FTP_DEBUG_MSG("processing: command %s [%x], params='%s' (cwd='%s')", cmdString.c_str(), command, parameters.c_str(), cwd.c_str());
 
   ///////////////////////////////////////
   //                                   //
@@ -472,7 +476,7 @@ int8_t FTPServer::processCommand()
     else
     {
       FTP_SEND_MSG(501, "Can't interpret parameters");
-    }    
+    }
   }
 
   //
@@ -595,10 +599,6 @@ int8_t FTPServer::processCommand()
         else if (FTP_CMD(NLST) == command)
         {
           data.println(fn);
-        }
-        else
-        {
-          FTP_DEBUG_MSG("Implemetation of %s [%x] command - internal BUG", cmdString.c_str(), command);
         }
       }
 
@@ -910,6 +910,8 @@ int8_t FTPServer::processCommand()
   else if (FTP_CMD(FEAT) == command)
   {
     FTP_SEND_DASHMSG(211, "Features:\r\n  MLSD\r\n  MDTM\r\n  SIZE\r\n211 End.");
+    command = 0; // clear command code and
+    rc = 0;      // return 0 to prevent progression of state machine in case FEAT was a command before login
   }
 
   //
@@ -967,7 +969,7 @@ int8_t FTPServer::processCommand()
   //
   else
   {
-    FTP_DEBUG_MSG("Unknown command: %s [%#x], param: '%s')", cmdString.c_str(), command, parameters.c_str());
+    FTP_DEBUG_MSG("Unknown command: %s, params: '%s')", cmdString.c_str(), parameters.c_str());
     FTP_SEND_MSG(500, "unknown command \"%s\"", cmdString.c_str());
   }
 
@@ -1005,7 +1007,6 @@ int8_t FTPServer::dataConnect()
   }
   return rc;
 }
-
 
 void FTPServer::closeTransfer()
 {
@@ -1085,7 +1086,7 @@ int8_t FTPServer::readChar()
 
       // clear cmdline
       cmdLine.clear();
-      FTP_DEBUG_MSG("readChar() success, command=%x, cmdString='%s', params='%s'", command, cmdString.c_str(), parameters.c_str());
+      // FTP_DEBUG_MSG("readChar() success, cmdString='%s' [%x], params='%s'", cmdString.c_str(), command, parameters.c_str());
       return 1;
     }
     else
@@ -1195,11 +1196,4 @@ String FTPServer::makeDateTimeStr(time_t ft)
   tmp.reserve(17);
   strftime((char *)tmp.c_str(), 17, "%Y%m%d%H%M%S", _tm);
   return tmp;
-}
-
-void FTPServer::updateTimeout(uint16_t s)
-{
-  millisEndConnection = s;
-  millisEndConnection *= 60000UL;
-  millisEndConnection += millis();
 }

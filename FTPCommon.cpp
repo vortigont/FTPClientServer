@@ -1,6 +1,7 @@
 #include "FTPCommon.h"
 
-FTPCommon::FTPCommon(FS &_FSImplementation) : THEFS(_FSImplementation)
+FTPCommon::FTPCommon(FS &_FSImplementation) : 
+    THEFS(_FSImplementation), sTimeOutMs(FTP_TIME_OUT*60*1000), aTimeout(FTP_TIME_OUT*60*1000)
 {
 }
 
@@ -17,9 +18,9 @@ void FTPCommon::stop()
     freeBuffer();
 }
 
-void FTPCommon::setTimeout(uint16_t timeout)
+void FTPCommon::setTimeout(uint32_t timeoutMs)
 {
-    sTimeOut = timeout;
+    sTimeOutMs = timeoutMs;
 }
 
 uint16_t FTPCommon::allocateBuffer(uint16_t desiredBytes)

@@ -10,6 +10,8 @@
 
 FTPClient::FTPClient(FS &_FSImplementation) : FTPCommon(_FSImplementation)
 {
+  // set aTimeout to never expire, will be used later by ::waitFor(...)
+  aTimeout.resetToNeverExpires();
 }
 
 void FTPClient::begin(const ServerInfo &theServer)
@@ -216,20 +218,20 @@ int8_t FTPClient::controlConnect()
   return -1;
 }
 
-bool FTPClient::waitFor(const uint16_t respCode, const __FlashStringHelper *errorString, uint16_t timeOut)
+bool FTPClient::waitFor(const int16_t respCode, const __FlashStringHelper *errorString, uint16_t timeOutMs)
 {
   // initalize waiting
-  if (0 == waitUntil)
+  if (!aTimeout.canExpire())
   {
-    waitUntil = millis();
-    waitUntil += timeOut;
+    aTimeout.reset(timeOutMs);
     _serverStatus.desc.clear();
   }
   else
   {
     // timeout
-    if ((int32_t)(millis() - waitUntil) >= 0)
+    if (aTimeout.expired())
     {
+      aTimeout.resetToNeverExpires();
       FTP_DEBUG_MSG("Waiting for code %u - timeout!", respCode);
       _serverStatus.code = errorTimeout;
       if (errorString)
@@ -241,7 +243,6 @@ bool FTPClient::waitFor(const uint16_t respCode, const __FlashStringHelper *erro
         _serverStatus.desc = F("timeout");
       }
       ftpState = cTimeout;
-      waitUntil = 0;
       return false;
     }
 
@@ -269,7 +270,7 @@ bool FTPClient::waitFor(const uint16_t respCode, const __FlashStringHelper *erro
           FTP_DEBUG_MSG("Waiting for code %u success, SMTP server replies: %s", respCode, _serverStatus.desc.c_str());
         }
 
-        waitUntil = 0;
+        aTimeout.resetToNeverExpires();
         return (respCode == _serverStatus.code);
       }
       else

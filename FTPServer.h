@@ -30,7 +30,7 @@
  **                                                                            **
  *******************************************************************************/
 #include "FTPCommon.h"
-#define FTP_SERVER_VERSION "0.9.6-20200526"
+#define FTP_SERVER_VERSION "0.9.7-20200529"
 
 class FTPServer : public FTPCommon
 {
@@ -45,9 +45,6 @@ public:
 
   // stops the FTP server
   void stop();
-
-  // set the FTP server's timeout in seconds
-  void setTimeout(uint16_t timeout = FTP_TIME_OUT * 60);
 
   // needs to be called frequently (e.g. in loop() )
   // to process ftp requests
@@ -81,7 +78,6 @@ private:
   String getFileName(const String &param, bool fullFilePath = false);
   String makeDateTimeStr(time_t fileTime);
   int8_t readChar();
-  void updateTimeout(uint16_t timeout);
 
   // server specific
   bool dataPassiveConn = true; // PASV (passive) mode is our default
@@ -96,8 +92,6 @@ private:
 
   internalState cmdState, // state of ftp control connection
       transferState;      // state of ftp data connection
-
-  uint32_t millisEndConnection;
 };
 
 #endif // FTP_SERVER_H
