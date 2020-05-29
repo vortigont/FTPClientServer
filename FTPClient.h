@@ -43,10 +43,18 @@ public:
 		ERROR,
 	} TransferResult;
 
+	static constexpr int16_t errorLocalFile = -1;
+	static constexpr int16_t errorAlreadyInProgress = -2;
+	static constexpr int16_t errorConnectionFailed = -3;
+	static constexpr int16_t errorServerResponse = -4;
+	static constexpr int16_t errorDataConnectionFailed = -5;
+	static constexpr int16_t errorUninitialized = -6;
+	static constexpr int16_t errorTimeout = -7;
+
 	typedef struct
 	{
 		TransferResult result;
-		uint16_t code;
+		int16_t code;
 		String desc;
 	} Status;
 
@@ -75,7 +83,7 @@ public:
 	void handleFTP();
 
 protected:
-	typedef enum 
+	typedef enum
 	{
 		cConnect = 0,
 		cGreet,
@@ -98,7 +106,7 @@ protected:
 	String _remoteFileName;
 	TransferType _direction;
 
-    int8_t controlConnect(); // connects to ServerInfo, returns -1: no connection possible, +1: connection established
+	int8_t controlConnect(); // connects to ServerInfo, returns -1: no connection possible, +1: connection established
 
 	bool waitFor(const uint16_t respCode, const __FlashStringHelper *errorString = nullptr, uint16_t timeOut = 10000);
 };

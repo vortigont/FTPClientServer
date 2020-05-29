@@ -33,7 +33,7 @@ const FTPClient::Status &FTPClient::transfer(const String &localFileName, const 
     if (!file)
     {
       _serverStatus.result = ERROR;
-      _serverStatus.code = 65530;
+      _serverStatus.code = errorLocalFile;
       _serverStatus.desc = F("Local file error");
     }
     else
@@ -52,7 +52,7 @@ const FTPClient::Status &FTPClient::transfer(const String &localFileName, const 
   else
   {
     // return error code with status "in PROGRESS"
-    _serverStatus.code = 65529;
+    _serverStatus.code = errorAlreadyInProgress;
   }
   return _serverStatus;
 }
@@ -67,7 +67,7 @@ void FTPClient::handleFTP()
   if (_server == nullptr)
   {
     _serverStatus.result = TransferResult::ERROR;
-    _serverStatus.code = 65535;
+    _serverStatus.code = errorUninitialized;
     _serverStatus.desc = F("begin() not called");
   }
   else if (ftpState > cIdle)
@@ -76,7 +76,7 @@ void FTPClient::handleFTP()
   }
   else if (cConnect == ftpState)
   {
-    _serverStatus.code = 65534;
+    _serverStatus.code = errorConnectionFailed;
     _serverStatus.desc = F("No connection to FTP server");
     if (controlConnect())
     {
@@ -138,7 +138,7 @@ void FTPClient::handleFTP()
       }
       if (!parseOK)
       {
-        _serverStatus.code = 65533;
+        _serverStatus.code = errorServerResponse;
         _serverStatus.desc = F("FTP server response not understood.");
       }
     }
@@ -148,7 +148,7 @@ void FTPClient::handleFTP()
     // open data connection
     if (dataConnect() < 0)
     {
-      _serverStatus.code = 65532;
+      _serverStatus.code = errorDataConnectionFailed;
       _serverStatus.desc = F("No data connection to FTP server");
       ftpState = cError;
     }
@@ -231,7 +231,7 @@ bool FTPClient::waitFor(const uint16_t respCode, const __FlashStringHelper *erro
     if ((int32_t)(millis() - waitUntil) >= 0)
     {
       FTP_DEBUG_MSG("Waiting for code %u - timeout!", respCode);
-      _serverStatus.code = 65535;
+      _serverStatus.code = errorTimeout;
       if (errorString)
       {
         _serverStatus.desc = errorString;
@@ -258,7 +258,7 @@ bool FTPClient::waitFor(const uint16_t respCode, const __FlashStringHelper *erro
           continue;
 
         // line complete, evaluate code
-        _serverStatus.code = strtol(_serverStatus.desc.c_str(), NULL, 0);
+        _serverStatus.code = atoi(_serverStatus.desc.c_str());
         if (respCode != _serverStatus.code)
         {
           ftpState = cError;
