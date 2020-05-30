@@ -30,26 +30,11 @@
 #endif
 
 #include "FTPCommon.h"
+#include <stdlib.h>
+#include <stdarg.h>
 
 WiFiServer controlServer(FTP_CTRL_PORT);
 WiFiServer dataServer(FTP_DATA_PORT_PASV);
-
-// helper macros
-#define FTP_STR(s) FTP_STR2(s)
-#define FTP_STR2(s) #s
-#define FTP_SEND_MSG(code, fmt, ...)                                     \
-  do                                                                     \
-  {                                                                      \
-    FTP_DEBUG_MSG(">>> " FTP_STR(code) " " fmt, ##__VA_ARGS__);          \
-    control.printf_P(PSTR(FTP_STR(code) " " fmt "\r\n"), ##__VA_ARGS__); \
-  } while (0)
-
-#define FTP_SEND_DASHMSG(code, fmt, ...)                                 \
-  do                                                                     \
-  {                                                                      \
-    FTP_DEBUG_MSG(">>> " FTP_STR(code) "-" fmt, ##__VA_ARGS__);          \
-    control.printf_P(PSTR(FTP_STR(code) "-" fmt "\r\n"), ##__VA_ARGS__); \
-  } while (0)
 
 // some constants
 static const char aSpace[] PROGMEM = " ";
@@ -166,16 +151,14 @@ void FTPServer::handleFTP()
       FTP_DEBUG_MSG("control server got connection from %s:%d",
                     control.remoteIP().toString().c_str(), control.remotePort());
 
-      FTP_SEND_MSG(220, "(espFTP " FTP_SERVER_VERSION ")");
+      sendMessage_P(220, PSTR("(espFTP " FTP_SERVER_VERSION ")"));
 
       if (_FTP_USER.length())
       {
-        // FTP_SEND_MSG(332, "Need account for login.");
         cmdState = cUserId;
       }
       else if (_FTP_PASS.length())
       {
-        // FTP_SEND_MSG(331, "Please specify the password.");
         cmdState = cPassword;
       }
       else
@@ -187,7 +170,7 @@ void FTPServer::handleFTP()
 
   else if (cmdState == cLoginOk) // tell client "Login ok!"
   {
-    FTP_SEND_MSG(230, "Login successful.");
+    sendMessage_P(230, PSTR("Login successful."));
     aTimeout.reset(sTimeOutMs);
     cmdState = cProcess;
   }
@@ -202,7 +185,7 @@ void FTPServer::handleFTP()
     if ((FTP_CMD(FEAT) != command) && (((cmdState == cUserId) && (FTP_CMD(USER) != command)) ||
                                        ((cmdState == cPassword) && (FTP_CMD(PASS) != command))))
     {
-      FTP_SEND_MSG(530, "Please login with USER and PASS.");
+      sendMessage_P(530, PSTR("Please login with USER and PASS."));
       FTP_DEBUG_MSG("ignoring before login: command %s [%x], params='%s'", cmdString.c_str(), command, parameters.c_str());
       command = 0;
       return;
@@ -230,7 +213,7 @@ void FTPServer::handleFTP()
         {
           // wait 10s for PASS command
           aTimeout.reset(10 * 1000);
-          FTP_SEND_MSG(331, "Please specify the password.");
+          sendMessage_P(331, PSTR("Please specify the password."));
           cmdState = cPassword;
         }
         else
@@ -265,8 +248,7 @@ void FTPServer::handleFTP()
     // check for timeout
     if (aTimeout.expired())
     {
-      FTP_SEND_MSG(530, "Timeout.");
-      FTP_DEBUG_MSG("client connection timed out");
+      sendMessage_P(530, PSTR("Timeout."));
       cmdState = cInit;
     }
 
@@ -296,11 +278,11 @@ void FTPServer::disconnectClient(bool gracious)
   abortTransfer();
   if (gracious)
   {
-    FTP_SEND_MSG(221, "Goodbye.");
+    sendMessage_P(221, PSTR("Goodbye."));
   }
   else
   {
-    FTP_SEND_MSG(231, "Service terminated.");
+    sendMessage_P(231, PSTR("Service terminated."));
   }
   control.stop();
 }
@@ -327,7 +309,7 @@ int8_t FTPServer::processCommand()
   {
     if (_FTP_USER.length() && (_FTP_USER != parameters))
     {
-      FTP_SEND_MSG(430, "User not found.");
+      sendMessage_P(430, PSTR("User not found."));
       command = 0;
       rc = 0;
     }
@@ -344,7 +326,7 @@ int8_t FTPServer::processCommand()
   {
     if (_FTP_PASS.length() && (_FTP_PASS != parameters))
     {
-      FTP_SEND_MSG(430, "Password invalid.");
+      sendMessage_P(430, PSTR("Password invalid."));
       command = 0;
       rc = 0;
     }
@@ -368,7 +350,7 @@ int8_t FTPServer::processCommand()
   //
   else if (FTP_CMD(NOOP) == command)
   {
-    FTP_SEND_MSG(200, "Zzz...");
+    sendMessage_P(200, PSTR("Zzz..."));
   }
 
   //
@@ -378,7 +360,7 @@ int8_t FTPServer::processCommand()
   {
     // up one level
     cwd = getPathName("", false);
-    FTP_SEND_MSG(250, "Directory successfully changed.");
+    sendMessage_P(250, PSTR("Directory successfully changed to \"%s\"."), cwd.c_str());
   }
 
   //
@@ -401,18 +383,18 @@ int8_t FTPServer::processCommand()
 #if (defined esp8266FTPServer_SPIFFS)
       // SPIFFS has no directories, it's always ok
       cwd = path;
-      FTP_SEND_MSG(250, "Directory successfully changed.");
+      sendMessage_P(250, PSTR("Directory successfully changed."));
 #else
       // check if directory exists
       file = THEFS.open(path, "r");
       if (file.isDirectory())
       {
         cwd = path;
-        FTP_SEND_MSG(250, "Directory successfully changed.");
+        sendMessage_P(250, PSTR("Directory successfully changed."));
       }
       else
       {
-        FTP_SEND_MSG(550, "Failed to change directory.");
+        sendMessage_P(550, PSTR("Failed to change directory."));
       }
       file.close();
 #endif
@@ -424,7 +406,7 @@ int8_t FTPServer::processCommand()
   //
   else if (FTP_CMD(PWD) == command)
   {
-    FTP_SEND_MSG(257, "\"%s\" is the current directory.", cwd.c_str());
+    sendMessage_P(257, PSTR("\"%s\" is the current directory."), cwd.c_str());
   }
 
   ///////////////////////////////////////
@@ -439,9 +421,9 @@ int8_t FTPServer::processCommand()
   else if (FTP_CMD(MODE) == command)
   {
     if (parameters == F("S"))
-      FTP_SEND_MSG(504, "Only S(tream) mode is suported");
+      sendMessage_P(504, PSTR("Only S(tream) mode is suported"));
     else
-      FTP_SEND_MSG(200, "Mode set to S.");
+      sendMessage_P(200, PSTR("Mode set to S."));
   }
 
   //
@@ -456,7 +438,7 @@ int8_t FTPServer::processCommand()
     dataPassiveConn = true;
     String ip = control.localIP().toString();
     ip.replace(".", ",");
-    FTP_SEND_MSG(227, "Entering Passive Mode (%s,%d,%d).", ip.c_str(), dataPort >> 8, dataPort & 255);
+    sendMessage_P(227, PSTR("Entering Passive Mode (%s,%d,%d)."), ip.c_str(), dataPort >> 8, dataPort & 255);
   }
 
   //
@@ -470,12 +452,12 @@ int8_t FTPServer::processCommand()
     if (parseDataIpPort(parameters.c_str()))
     {
       dataPassiveConn = false;
-      FTP_SEND_MSG(200, "PORT command successful");
+      sendMessage_P(200, PSTR("PORT command successful"));
       FTP_DEBUG_MSG("Data connection management Active, using %s:%u", dataIP.toString().c_str(), dataPort);
     }
     else
     {
-      FTP_SEND_MSG(501, "Can't interpret parameters");
+      sendMessage_P(501, PSTR("Cannot interpret parameters."));
     }
   }
 
@@ -485,9 +467,9 @@ int8_t FTPServer::processCommand()
   else if (FTP_CMD(STRU) == command)
   {
     if (parameters == F("F"))
-      FTP_SEND_MSG(504, "Only F(ile) is suported");
+      sendMessage_P(504, PSTR("Only F(ile) is suported"));
     else
-      FTP_SEND_MSG(200, "Structure set to F.");
+      sendMessage_P(200, PSTR("Structure set to F."));
   }
 
   //
@@ -496,11 +478,11 @@ int8_t FTPServer::processCommand()
   else if (FTP_CMD(TYPE) == command)
   {
     if (parameters == F("A"))
-      FTP_SEND_MSG(200, "TYPE is now ASII.");
+      sendMessage_P(200, PSTR("TYPE is now ASII."));
     else if (parameters == F("I"))
-      FTP_SEND_MSG(200, "TYPE is now 8-bit Binary.");
+      sendMessage_P(200, PSTR("TYPE is now 8-bit Binary."));
     else
-      FTP_SEND_MSG(504, "Unrecognised TYPE.");
+      sendMessage_P(504, PSTR("Unrecognised TYPE."));
   }
 
   ///////////////////////////////////////
@@ -515,7 +497,7 @@ int8_t FTPServer::processCommand()
   else if (FTP_CMD(ABOR) == command)
   {
     abortTransfer();
-    FTP_SEND_MSG(226, "Data connection closed");
+    sendMessage_P(226, PSTR("Data connection closed"));
   }
 
   //
@@ -524,20 +506,20 @@ int8_t FTPServer::processCommand()
   else if (FTP_CMD(DELE) == command)
   {
     if (parameters.length() == 0)
-      FTP_SEND_MSG(501, "No file name");
+      sendMessage_P(501, PSTR("No file name"));
     else
     {
       if (!THEFS.exists(path))
       {
-        FTP_SEND_MSG(550, "Delete operation failed, file '%s' not found.", path.c_str());
+        sendMessage_P(550, PSTR("Delete operation failed, file '%s' not found."), path.c_str());
       }
       else if (THEFS.remove(path))
       {
-        FTP_SEND_MSG(250, "Delete operation successful.");
+        sendMessage_P(250, PSTR("Delete operation successful."));
       }
       else
       {
-        FTP_SEND_MSG(450, "Delete operation failed.");
+        sendMessage_P(450, PSTR("Delete operation failed."));
       }
     }
   }
@@ -552,12 +534,12 @@ int8_t FTPServer::processCommand()
     rc = dataConnect(); // returns -1: no data connection, 0: need more time, 1: data ok
     if (rc < 0)
     {
-      FTP_SEND_MSG(425, "No data connection");
+      sendMessage_P(425, PSTR("No data connection"));
       rc = 1; // mark command as processed
     }
     else if (rc > 0)
     {
-      FTP_SEND_MSG(150, "Accepted data connection");
+      sendMessage_P(150, PSTR("Accepted data connection"));
       uint16_t dirCount = 0;
 
       // filter out possible command parameters like "-a", given by some clients
@@ -567,7 +549,7 @@ int8_t FTPServer::processCommand()
       {
         path.remove(dashPos);
       }
-      FTP_DEBUG_MSG("Listing content of >%s<", path.c_str());
+      FTP_DEBUG_MSG("Listing content of '%s'", path.c_str());
       Dir dir = THEFS.openDir(path);
       while (dir.next())
       {
@@ -622,13 +604,13 @@ int8_t FTPServer::processCommand()
       {
         control.println(F("226-options: -a -l\r\n"));
       }
-      FTP_SEND_MSG(226, "%d matches total", dirCount);
+      sendMessage_P(226, PSTR("%d matches total"), dirCount);
     }
 #if defined ESP32
     File root = THEFS.open(cwd);
     if (!root)
     {
-      FTP_SEND_MSG(550, "Can't open directory " + cwd);
+      sendMessage_P(550, PSTR("Can't open directory \"%s\""), cwd.c_str());
       // return;
     }
     else
@@ -662,7 +644,7 @@ int8_t FTPServer::processCommand()
         }
         file = root.openNextFile();
       }
-      FTP_SEND_MSG(226, "%s matches total", nm);
+      sendMessage_P(226, PSTR("%d matches total"), nm);
     }
 #endif
     data.stop();
@@ -704,8 +686,8 @@ int8_t FTPServer::processCommand()
       // }
       file = root.openNextFile();
     }
-    FTP_SEND_MSG(226, "-options: -a -l");
-    FTP_SEND_MSG(226, "%d matches total", nm);
+    sendMessage_P(226, PSTR("-options: -a -l"));
+    sendMessage_P(226, PSTR("%d matches total"), nm);
     // }
     data.stop();
   }
@@ -717,7 +699,7 @@ int8_t FTPServer::processCommand()
     File root = THEFS.open(cwd);
     if (!root)
     {
-      FTP_SEND_MSG(550, "Can't open directory %s\n"), cwd.c_str());
+      sendMessage_P(550, "Can't open directory %s\n"), cwd.c_str());
     }
     else
     {
@@ -728,7 +710,7 @@ int8_t FTPServer::processCommand()
         nm++;
         file = root.openNextFile();
       }
-      FTP_SEND_MSG(226, "%d matches total", nm);
+      sendMessage_P(226, "%d matches total", nm);
     }
     data.stop();
   }
@@ -741,7 +723,7 @@ int8_t FTPServer::processCommand()
   {
     if (parameters.length() == 0)
     {
-      FTP_SEND_MSG(501, "No file name");
+      sendMessage_P(501, PSTR("No file name"));
     }
     else
     {
@@ -750,18 +732,18 @@ int8_t FTPServer::processCommand()
         file = THEFS.open(path, "r");
       if (!file)
       {
-        FTP_SEND_MSG(550, "File '%s' not found.", parameters.c_str());
+        sendMessage_P(550, PSTR("File \"%s\" not found."), parameters.c_str());
       }
       else if (!file.isFile())
       {
-        FTP_SEND_MSG(450, "Cannot open file \"%s\".", parameters.c_str());
+        sendMessage_P(450, PSTR("Cannot open file \"%s\"."), parameters.c_str());
       }
       else
       {
         rc = dataConnect(); // returns -1: no data connection, 0: need more time, 1: data ok
         if (rc < 0)
         {
-          FTP_SEND_MSG(425, "No data connection");
+          sendMessage_P(425, PSTR("No data connection"));
           rc = 1; // mark command as processed
         }
         else if (rc > 0)
@@ -773,12 +755,12 @@ int8_t FTPServer::processCommand()
           if (allocateBuffer(TCP_MSS))
           {
             FTP_DEBUG_MSG("Sending file '%s' (%lu bytes)", path.c_str(), fs);
-            FTP_SEND_MSG(150, "%lu bytes to download", fs);
+            sendMessage_P(150, PSTR("%lu bytes to download"), fs);
           }
           else
           {
             closeTransfer();
-            FTP_SEND_MSG(451, "Internal error. Not enough memory.");
+            sendMessage_P(451, PSTR("Internal error. Not enough memory."));
           }
         }
       }
@@ -792,7 +774,7 @@ int8_t FTPServer::processCommand()
   {
     if (parameters.length() == 0)
     {
-      FTP_SEND_MSG(501, "No file name.");
+      sendMessage_P(501, PSTR("No file name."));
     }
     else
     {
@@ -801,14 +783,14 @@ int8_t FTPServer::processCommand()
         file = THEFS.open(path, "w");
       if (!file)
       {
-        FTP_SEND_MSG(451, "Cannot open/create \"%s\"", path.c_str());
+        sendMessage_P(451, PSTR("Cannot open/create \"%s\""), path.c_str());
       }
       else
       {
         rc = dataConnect(); // returns -1: no data connection, 0: need more time, 1: data ok
         if (rc < 0)
         {
-          FTP_SEND_MSG(425, "No data connection");
+          sendMessage_P(425, PSTR("No data connection"));
           file.close();
           rc = 1; // mark command as processed
         }
@@ -820,12 +802,12 @@ int8_t FTPServer::processCommand()
           if (allocateBuffer(TCP_MSS))
           {
             FTP_DEBUG_MSG("Receiving file '%s' => %s", parameters.c_str(), path.c_str());
-            FTP_SEND_MSG(150, "Connected to port %d", dataPort);
+            sendMessage_P(150, PSTR("Connected to port %d"), dataPort);
           }
           else
           {
             closeTransfer();
-            FTP_SEND_MSG(451, "Internal error. Not enough memory.");
+            sendMessage_P(451, PSTR("Internal error. Not enough memory."));
           }
         }
       }
@@ -838,16 +820,16 @@ int8_t FTPServer::processCommand()
   else if (FTP_CMD(MKD) == command)
   {
 #if (defined esp8266FTPServer_SPIFFS)
-    FTP_SEND_MSG(550, "Create directory operation failed."); //not support on SPIFFS
+    sendMessage_P(550, "Create directory operation failed."); //not support on SPIFFS
 #else
     FTP_DEBUG_MSG("mkdir(%s)", path.c_str());
     if (THEFS.mkdir(path))
     {
-      FTP_SEND_MSG(257, "\"%s\" created.", path.c_str());
+      sendMessage_P(257, PSTR("\"%s\" created."), path.c_str());
     }
     else
     {
-      FTP_SEND_MSG(550, "Create directory operation failed.");
+      sendMessage_P(550, PSTR("Create directory operation failed."));
     }
 #endif
   }
@@ -858,19 +840,19 @@ int8_t FTPServer::processCommand()
   else if (FTP_CMD(RMD) == command)
   {
 #if (defined esp8266FTPServer_SPIFFS)
-    FTP_SEND_MSG(550, "Remove directory operation failed."); //not support on SPIFFS
+    sendMessage_P(550, "Remove directory operation failed."); //not support on SPIFFS
 #else
     // check directory for files
     Dir dir = THEFS.openDir(path);
     if (dir.next())
     {
       //only delete if dir is empty!
-      FTP_SEND_MSG(550, "Remove directory operation failed, directory is not empty.");
+      sendMessage_P(550, PSTR("Remove directory operation failed, directory is not empty."));
     }
     else
     {
       THEFS.rmdir(path);
-      FTP_SEND_MSG(250, "Remove directory operation successful.");
+      sendMessage_P(250, PSTR("Remove directory operation successful."));
     }
 #endif
   }
@@ -880,14 +862,14 @@ int8_t FTPServer::processCommand()
   else if (FTP_CMD(RNFR) == command)
   {
     if (parameters.length() == 0)
-      FTP_SEND_MSG(501, "No file name");
+      sendMessage_P(501, PSTR("No file name"));
     else
     {
       if (!THEFS.exists(path))
-        FTP_SEND_MSG(550, "File \"%s\" not found.", path.c_str());
+        sendMessage_P(550, PSTR("File \"%s\" not found."), path.c_str());
       else
       {
-        FTP_SEND_MSG(350, "RNFR accepted - file \"%s\" exists, ready for destination", path.c_str());
+        sendMessage_P(350, PSTR("RNFR accepted - file \"%s\" exists, ready for destination"), path.c_str());
         rnFrom = path;
       }
     }
@@ -898,18 +880,18 @@ int8_t FTPServer::processCommand()
   else if (FTP_CMD(RNTO) == command)
   {
     if (rnFrom.length() == 0)
-      FTP_SEND_MSG(503, "Need RNFR before RNTO");
+      sendMessage_P(503, PSTR("Need RNFR before RNTO"));
     else if (parameters.length() == 0)
-      FTP_SEND_MSG(501, "No file name");
+      sendMessage_P(501, PSTR("No file name"));
     else if (THEFS.exists(path))
-      FTP_SEND_MSG(553, "\"%s\" already exists.", parameters.c_str());
+      sendMessage_P(553, PSTR("\"%s\" already exists."), parameters.c_str());
     else
     {
       FTP_DEBUG_MSG("Renaming '%s' to '%s'", rnFrom.c_str(), path.c_str());
       if (THEFS.rename(rnFrom, path))
-        FTP_SEND_MSG(250, "File successfully renamed or moved");
+        sendMessage_P(250, PSTR("File successfully renamed or moved"));
       else
-        FTP_SEND_MSG(451, "Rename/move failure.");
+        sendMessage_P(451, PSTR("Rename/move failure."));
     }
     rnFrom.clear();
   }
@@ -925,7 +907,7 @@ int8_t FTPServer::processCommand()
   //
   else if (FTP_CMD(FEAT) == command)
   {
-    FTP_SEND_DASHMSG(211, "Features:\r\n  MLSD\r\n  MDTM\r\n  SIZE\r\n211 End.");
+    control.print(F("211-Features:\r\n  MLSD\r\n  MDTM\r\n  SIZE\r\n211 End.\r\n"));
     command = 0; // clear command code and
     rc = 0;      // return 0 to prevent progression of state machine in case FEAT was a command before login
   }
@@ -938,11 +920,11 @@ int8_t FTPServer::processCommand()
     file = THEFS.open(path, "r");
     if ((!file) || (0 == parameters.length()))
     {
-      FTP_SEND_MSG(550, "Unable to retrieve time");
+      sendMessage_P(550, PSTR("Unable to retrieve time"));
     }
     else
     {
-      FTP_SEND_MSG(213, "%s", makeDateTimeStr(file.getLastWrite()).c_str());
+      sendMessage_P(213, PSTR("%s"), makeDateTimeStr(file.getLastWrite()).c_str());
     }
     file.close();
   }
@@ -955,11 +937,11 @@ int8_t FTPServer::processCommand()
     file = THEFS.open(path, "r");
     if ((!file) || (0 == parameters.length()))
     {
-      FTP_SEND_MSG(450, "Cannot open file.");
+      sendMessage_P(450, PSTR("Cannot open file."));
     }
     else
     {
-      FTP_SEND_MSG(213, "%lu", (uint32_t)file.size());
+      sendMessage_P(213, PSTR("%lu"), (uint32_t)file.size());
     }
     file.close();
   }
@@ -969,7 +951,7 @@ int8_t FTPServer::processCommand()
   //
   else if (FTP_CMD(SITE) == command)
   {
-    FTP_SEND_MSG(502, "SITE command not implemented");
+    sendMessage_P(502, PSTR("SITE command not implemented"));
   }
 
   //
@@ -977,7 +959,7 @@ int8_t FTPServer::processCommand()
   //
   else if (FTP_CMD(SYST) == command)
   {
-    FTP_SEND_MSG(215, "UNIX Type: L8");
+    sendMessage_P(215, PSTR("UNIX Type: L8"));
   }
 
   //
@@ -986,7 +968,7 @@ int8_t FTPServer::processCommand()
   else
   {
     FTP_DEBUG_MSG("Unknown command: %s, params: '%s')", cmdString.c_str(), parameters.c_str());
-    FTP_SEND_MSG(500, "unknown command \"%s\"", cmdString.c_str());
+    sendMessage_P(500, PSTR("unknown command \"%s\""), cmdString.c_str());
   }
 
   return rc;
@@ -1029,10 +1011,10 @@ void FTPServer::closeTransfer()
   uint32_t deltaT = (int32_t)(millis() - millisBeginTrans);
   if (deltaT > 0 && bytesTransfered > 0)
   {
-    FTP_SEND_MSG(226, "File successfully transferred, %lu ms, %f kB/s.", deltaT, float(bytesTransfered) / deltaT);
+    sendMessage_P(226, PSTR("File successfully transferred, %lu ms, %f kB/s."), deltaT, float(bytesTransfered) / deltaT);
   }
   else
-    FTP_SEND_MSG(226, "File successfully transferred");
+    sendMessage_P(226, PSTR("File successfully transferred"));
 
   FTPCommon::closeTransfer();
 }
@@ -1043,7 +1025,7 @@ void FTPServer::abortTransfer()
   {
     file.close();
     data.stop();
-    FTP_SEND_MSG(426, "Transfer aborted");
+    sendMessage_P(426, PSTR("Transfer aborted"));
   }
   freeBuffer();
   transferState = tIdle;
@@ -1112,7 +1094,7 @@ int8_t FTPServer::readChar()
       if (cmdLine.length() > FTP_CMD_SIZE)
       {
         cmdLine.clear();
-        FTP_SEND_MSG(500, "Line too long");
+        sendMessage_P(500, PSTR("Line too long"));
       }
     }
   }
@@ -1223,4 +1205,38 @@ String FTPServer::makeDateTimeStr(time_t ft)
     strftime((char *)tmp.c_str(), 13, "%h %d %H:%M", _tm);
   }
   return tmp;
+}
+
+//
+//    send "code formatted string" + CR-LF
+//
+void FTPServer::sendMessage_P(int16_t code, PGM_P fmt, ...)
+{
+  FTP_DEBUG_MSG(">>> %d %S", code, fmt);
+
+  int size = 0;
+  char *p = NULL;
+  va_list ap;
+
+  /* Determine required size for a string buffer */
+  va_start(ap, fmt);
+  size = vsnprintf(p, size, fmt, ap);
+  va_end(ap);
+
+  if (size > 0)
+  {
+    p = (char *)malloc(++size); // increase +1 for '\0'
+    if (p)
+    {
+      va_start(ap, fmt);
+      size = vsnprintf(p, size, fmt, ap);
+      va_end(ap);
+
+      if (size > 0)
+      {
+        control.printf_P(PSTR("%d %s\r\n"), code, p);
+      }
+      free(p);
+    }
+  }
 }

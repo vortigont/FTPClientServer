@@ -73,6 +73,7 @@ private:
 
   virtual int8_t dataConnect();
 
+  void sendMessage_P(int16_t code, PGM_P fmt, ...);
   String getPathName(const String &param, bool includeLast = false);
   String getFileName(const String &param, bool fullFilePath = false);
   String makeDateTimeStr(time_t fileTime);
