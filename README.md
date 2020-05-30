@@ -84,4 +84,4 @@ ftpClient.handleFTP(); // place this in e.g. loop()
 
 ## Notes
 * I forked the Server from https://github.com/nailbuster/esp8266FTPServer which itself was forked from: https://github.com/gallegojm/Arduino-Ftp-Server/tree/master/FtpServer
-* Inspiration for the Client was taken from https://github.com/esp8266/Arduino/issues/1183#issuecomment-634556135
+* Inspiration for the Client was taken from https://github.com/danbicks and his code posted in https://github.com/esp8266/Arduino/issues/1183#issuecomment-634556135

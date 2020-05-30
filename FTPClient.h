@@ -2,8 +2,9 @@
  *
  * MIT license
  * written by Daniel Plasa:
- * 1. split into a plain FTP and a FTPS class to save code space in case only FTP is needed.
- * 2. Supply two ways of getting/putting files:
+ * Inspired by https://github.com/danbicks and his code posted in https://github.com/esp8266/Arduino/issues/1183#issuecomment-634556135
+ *
+ * The Client supports two ways of getting/putting files:
  *    a)  blocking, returns only after transfer complete (or error)
  *    b)  non-blocking, returns immedeate. call check() for status of process
  * 
@@ -110,18 +111,5 @@ protected:
 
 	bool waitFor(const int16_t respCode, const __FlashStringHelper *errorString = nullptr, uint32_t timeOut = 10000);
 };
-
-// basically just the same as FTPClient but has a different connect() method to account for SSL/TLS
-// connection stuff
-/*
-class FTPSClient : public FTPClient
-{
-public:
-	FTPSClient() = default;
-
-private:
-	virtual bool connect();
-};
-*/
 
 #endif // FTP_CLIENT_H
