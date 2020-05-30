@@ -907,7 +907,7 @@ int8_t FTPServer::processCommand()
   //
   else if (FTP_CMD(FEAT) == command)
   {
-    control.print(F("211-Features:\r\n  MLSD\r\n  MDTM\r\n  SIZE\r\n211 End.\r\n"));
+    control.print(F("211-Features:\r\n  MLSD\r\n  MDTM\r\n  SITE\r\n  SIZE\r\n211 End.\r\n"));
     command = 0; // clear command code and
     rc = 0;      // return 0 to prevent progression of state machine in case FEAT was a command before login
   }
@@ -951,7 +951,7 @@ int8_t FTPServer::processCommand()
   //
   else if (FTP_CMD(SITE) == command)
   {
-    sendMessage_P(502, PSTR("SITE command not implemented"));
+    sendMessage_P(550, PSTR("SITE %s command not implemented."), parameters.c_str());
   }
 
   //
@@ -1189,20 +1189,39 @@ String FTPServer::getFileName(const String &param, bool fullFilePath)
 
 String FTPServer::makeDateTimeStr(time_t ft)
 {
-  struct tm *_tm = gmtime(&ft);
   String tmp;
+  struct tm _tm;
+  gmtime_r(&ft, &_tm);
+
   if (FTP_CMD(MLSD) == command)
   {
     tmp.reserve(17);
-    strftime((char *)tmp.c_str(), 17, "%Y%m%d%H%M%S", _tm);
+    strftime((char *)tmp.c_str(), 17, "%Y%m%d%H%M%S", &_tm);
   }
   else if (FTP_CMD(LIST) == command)
   {
-    // "%h %d %H:%M" for file dates of the current year
-    // "%h %d  %Y"   for file dates of any other years
-    // FIXME ignore year for now...
-    tmp.reserve(13);
-    strftime((char *)tmp.c_str(), 13, "%h %d %H:%M", _tm);
+    // "%h %d %H:%M", e.g. "May 17 12:34" for file dates of the current year
+    // "%h %d  %Y"  , e.g. "May 17  2019" for file dates of any other years
+    tmp.reserve(18);
+
+    // just convert both ways, cut out later what's to be shown
+    strftime((char *)tmp.c_str(), 13, "%h %d  %Y%H:%M", &_tm);
+
+    // check for a year != year from now
+    int fileYear = _tm.tm_year;
+    time_t nowTime = time(NULL);
+    gmtime_r(&nowTime, &_tm);
+      // tmp is "May 17  201912:34"
+    if (fileYear != _tm.tm_year)
+    {
+      // cut off time
+      tmp.remove(12);
+    }
+    else
+    {
+      // cut off year
+      tmp.remove(7,5);
+    }
   }
   return tmp;
 }
