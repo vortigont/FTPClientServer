@@ -20,6 +20,9 @@ The FTP Client is pretty much straihgt forward. It can upload (put, STOR) a file
 * Server only allows one ftp control and one data connection at a time. You need to setup Filezilla (or other clients) to respect that, i.e. only allow **1** connection. (In FileZilla go to File/Site Manager then select your site. In Transfer Settings, check "Limit number of simultaneous connections" and set the maximum to 1.)
 * It does not yet support encryption
 
+## Compatibility
+This library was tested against the 2.7.1 version of the esp8266 Arduino core library.
+
 ## Server Usage
 
 ### Construct an FTPServer
