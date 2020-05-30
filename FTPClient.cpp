@@ -1,13 +1,5 @@
 #include "FTPClient.h"
 
-// helper macro
-#define CLIENT_SEND(fmt, ...)                        \
-  do                                                 \
-  {                                                  \
-    FTP_DEBUG_MSG(">>> " fmt, ##__VA_ARGS__);        \
-    control.printf_P(PSTR(fmt "\n"), ##__VA_ARGS__); \
-  } while (0)
-
 FTPClient::FTPClient(FS &_FSImplementation) : FTPCommon(_FSImplementation)
 {
   // set aTimeout to never expire, will be used later by ::waitFor(...)
@@ -95,7 +87,8 @@ void FTPClient::handleFTP()
   {
     if (waitFor(220 /* 220 (vsFTPd version) */, F("No server greeting")))
     {
-      CLIENT_SEND("USER %s", _server->login.c_str());
+      FTP_DEBUG_MSG(">>> USER %s", _server->login.c_str());
+      control.printf_P(PSTR("USER %s\n"), _server->login.c_str());
       ftpState = cUser;
     }
   }
@@ -103,7 +96,8 @@ void FTPClient::handleFTP()
   {
     if (waitFor(331 /* 331 Password */))
     {
-      CLIENT_SEND("PASS %s", _server->password.c_str());
+      FTP_DEBUG_MSG(">>> PASS %s", _server->password.c_str());
+      control.printf_P(PSTR("PASS %s\n"), _server->password.c_str());
       ftpState = cPassword;
     }
   }
@@ -111,7 +105,8 @@ void FTPClient::handleFTP()
   {
     if (waitFor(230 /* 230 Login successful*/))
     {
-      CLIENT_SEND("PASV");
+      FTP_DEBUG_MSG(">>> PASV");
+      control.printf_P(PSTR("PASV\n"));
       ftpState = cPassive;
     }
   }
@@ -163,11 +158,13 @@ void FTPClient::handleFTP()
       allocateBuffer(TCP_MSS);
       if (_direction & FTP_PUT_NONBLOCKING)
       {
-        CLIENT_SEND("STOR %s", _remoteFileName.c_str());
+        FTP_DEBUG_MSG(">>> STOR %s", _remoteFileName.c_str());
+        control.printf_P(PSTR("STOR %s\n"), _remoteFileName.c_str());
       }
       else if (_direction & FTP_GET_NONBLOCKING)
       {
-        CLIENT_SEND("RETR %s", _remoteFileName.c_str());
+        FTP_DEBUG_MSG(">>> RETR %s", _remoteFileName.c_str());
+        control.printf_P(PSTR("RETR %s\n"), _remoteFileName.c_str());
       }
     }
   }
@@ -194,7 +191,8 @@ void FTPClient::handleFTP()
   }
   else if (cQuit == ftpState)
   {
-    CLIENT_SEND("QUIT");
+    FTP_DEBUG_MSG(">>> QUIT");
+    control.printf_P(PSTR("QUIT\n"));
     _serverStatus.result = OK;
     ftpState = cIdle;
   }
@@ -281,36 +279,3 @@ bool FTPClient::waitFor(const int16_t respCode, const __FlashStringHelper *error
   }
   return false;
 }
-
-/*
-bool SMTPSSender::connect()
-{
-  client = new WiFiClientSecure();
-  if (NULL == client)
-    return false;
-
-  DEBUG_MSG("%SCA validation!", _server->validateCA ? PSTR("") : PSTR("NO "));
-
-  if (_server->validateCA == false)
-  {
-    // disable CA checks
-    reinterpret_cast<WiFiClientSecure *>(client)->setInsecure();
-  }
-
-  // Determine if MFLN is supported by a server
-  // if it returns true, use the ::setBufferSizes(rx, tx) to shrink
-  // the needed BearSSL memory while staying within protocol limits.
-  bool mfln = reinterpret_cast<WiFiClientSecure *>(client)->probeMaxFragmentLength(_server->servername, _server->port, 512);
-
-  DEBUG_MSG("MFLN %Ssupported", mfln ? PSTR("") : PSTR("un"));
-
-  if (mfln)
-  {
-    reinterpret_cast<WiFiClientSecure *>(client)->setBufferSizes(512, 512);
-  }
-
-  reinterpret_cast<WiFiClientSecure *>(client)->connect(_server->servername, _server->port);
-  return reinterpret_cast<WiFiClientSecure *>(client)->connected();
-}
-
-*/
