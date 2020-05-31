@@ -117,10 +117,6 @@ void FTPServer::handleFTP()
   //    V
   //  cProcess
   //
-
-  // if ((int32_t)(millisDelay - millis()) > 0)
-  //   return;
-
   if (cmdState == cInit)
   {
     if (control.connected())
@@ -1177,52 +1173,50 @@ String FTPServer::getFileName(const String &param, bool fullFilePath)
   return tmp;
 }
 
-// Formats YYYYMMDDHHMMSS from a time_t timestamp
 //
-// uses the buf of the FTPServer to store the date string
+// Formats printable String from a time_t timestamp
 //
-// parameters:
-//    timestamp
-//
-// return:
-//    pointer to buf[0]
-
 String FTPServer::makeDateTimeStr(time_t ft)
 {
   String tmp;
+  // a buffer with enough space for the formats
+  char buf[25];
+  char *b = buf;
+
+  // break down the provided file time
   struct tm _tm;
   gmtime_r(&ft, &_tm);
 
   if (FTP_CMD(MLSD) == command)
   {
-    tmp.reserve(17);
-    strftime((char *)tmp.c_str(), 17, "%Y%m%d%H%M%S", &_tm);
+    // "%Y%m%d%H%M%S", e.g. "20200517123400"
+    strftime(b, sizeof(buf), "%Y%m%d%H%M%S", &_tm);
   }
   else if (FTP_CMD(LIST) == command)
   {
     // "%h %d %H:%M", e.g. "May 17 12:34" for file dates of the current year
     // "%h %d  %Y"  , e.g. "May 17  2019" for file dates of any other years
-    tmp.reserve(18);
 
-    // just convert both ways, cut out later what's to be shown
-    strftime((char *)tmp.c_str(), 13, "%h %d  %Y%H:%M", &_tm);
+    // just convert both ways, select later what's to be shown
+    // buf becomes "May 17  2019May 17 12:34"
+    strftime(b, sizeof(buf), "%h %d %H:%M%h %d  %Y", &_tm);
 
     // check for a year != year from now
     int fileYear = _tm.tm_year;
     time_t nowTime = time(NULL);
     gmtime_r(&nowTime, &_tm);
-      // tmp is "May 17  201912:34"
-    if (fileYear != _tm.tm_year)
+    if (fileYear == _tm.tm_year)
     {
-      // cut off time
-      tmp.remove(12);
+      // cut off 2nd half - year variant
+      b[12] = '\0';
     }
     else
     {
-      // cut off year
-      tmp.remove(7,5);
+      // skip 1st half - time variant
+      b += 12;
     }
   }
+  tmp = b;
   return tmp;
 }
 
