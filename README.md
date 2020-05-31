@@ -5,7 +5,7 @@ I've modified a FTP Server from arduino/wifi shield to work with the esp826. It 
 This allows you to FTP into your esp8266/esp32 and access/modify the LittleFS/SPIFFS folder/data.
 I've tested it with Filezilla, and it works (upload/download/rename/delete). There's no create/modify directory support in SPIFFS but in LittleFS there is!
 
-The FTP Client is pretty much straihgt forward. It can upload (put, STOR) a file to a FTP Server or download (get, RETR) a file from a FTP Server. Both ways can be done blocking or non-blocking.
+The FTP Client is pretty much straight forward. It can upload (put, STOR) a file to a FTP Server or download (get, RETR) a file from a FTP Server. Both ways can be done blocking or non-blocking.
 
 ## Features
 * Server supports both active and passive mode
