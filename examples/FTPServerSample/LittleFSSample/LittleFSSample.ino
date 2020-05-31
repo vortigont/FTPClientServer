@@ -15,12 +15,11 @@
    Daniel Plasa <dplasa@gmail.com>
 
 */
-#ifdef ESP8266
-#include <ESP8266WiFi.h>
-#elif defined ESP32
-#include <WiFi.h>
+#if (defined ESP32)
+#error "No LittlFS on the ESP32"
 #endif
 
+#include <ESP8266WiFi.h>
 #include <LittleFS.h>
 #include <FTPServer.h>
 
@@ -47,7 +46,7 @@ void setup(void)
   Serial.printf_P(PSTR("\nConnected to %S, IP address is %s\n"), ssid, WiFi.localIP().toString().c_str());
 
   // setup the ftp server with username and password
-  // ports are defined in esFTP.h, default is
+  // ports are defined in FTPCommon.h, default is
   //   21 for the control connection
   //   50009 for the data connection (passive mode by default)
   ftpSrv.begin(F("ftp"), F("ftp")); //username, password for ftp.  set ports in ESP8266FtpServer.h  (default 21, 50009 for PASV)

@@ -5,7 +5,18 @@
 #include <FS.h>
 #include <WiFiClient.h>
 #include <WString.h>
+
+#ifdef ESP8266
 #include <PolledTimeout.h>
+using esp8266::polledTimeout::oneShotMs; // import the type to the local namespace
+#define BUFFERSIZE TCP_MSS
+#define PRINTu32 "lu"
+#elif defined ESP32
+#include "esp32compat/PolledTimeout.h"
+using esp32::polledTimeout::oneShotMs;
+#define BUFFERSIZE CONFIG_TCP_MSS
+#define PRINTu32 "u"
+#endif
 
 #define FTP_SERVER_VERSION "0.9.7-20200529"
 
@@ -84,8 +95,6 @@
 #define FTP_CMD_LE_SYST 0x54535953      // "SYST" as uint32_t (little endian)
 #define FTP_CMD_BE_SYST 0x53595354      // "SYST" as uint32_t (big endian)
 
-using esp8266::polledTimeout::oneShotMs; // import the type to the local namespace
-
 class FTPCommon
 {
 public:
@@ -124,7 +133,7 @@ protected:
     bool doNetworkToFile();
     virtual void closeTransfer();
 
-    uint16_t allocateBuffer(uint16_t desiredBytes); // allocate buffer for transfer
+    uint16_t allocateBuffer(uint16_t desiredBytes = BUFFERSIZE); // allocate buffer for transfer
     void freeBuffer();
     uint8_t *fileBuffer = NULL; // pointer to buffer for file transfer (by allocateBuffer)
     uint16_t fileBufferSize;    // size of buffer

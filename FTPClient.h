@@ -51,6 +51,7 @@ public:
 	static constexpr int16_t errorDataConnectionFailed = -5;
 	static constexpr int16_t errorUninitialized = -6;
 	static constexpr int16_t errorTimeout = -7;
+	static constexpr int16_t errorMemory = -8;
 
 	typedef struct
 	{

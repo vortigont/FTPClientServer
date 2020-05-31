@@ -546,31 +546,37 @@ int8_t FTPServer::processCommand()
         path.remove(dashPos);
       }
       FTP_DEBUG_MSG("Listing content of '%s'", path.c_str());
+#if (defined ESP8266)
       Dir dir = THEFS.openDir(path);
       while (dir.next())
       {
-        ++dirCount;
-        bool isDir = false;
-        String fn = dir.fileName();
-        if (cwd == FPSTR(aSlash) && fn[0] == '/')
-          fn.remove(0, 1);
-        isDir = dir.isDirectory();
         file = dir.openFile("r");
+#elif (defined ESP32)
+      File dir = THEFS.open(path);
+      file = dir.openNextFile();
+      while (file)
+      {
+#endif
+        bool isDir = file.isDirectory();
+        String fn = file.name();
+        uint32_t fs = file.size();
         String fileTime = makeDateTimeStr(file.getLastWrite());
         file.close();
+        if (cwd == FPSTR(aSlash) && fn[0] == '/')
+          fn.remove(0, 1);
 
         if (FTP_CMD(LIST) == command)
         {
           // unixperms  type userid   groupid      size time & date  name
           // drwxrwsr-x    2 111      117          4096 Apr 01 12:45 aDirectory
           // -rw-rw-r--    1 111      117        875315 Mar 23 17:29 aFile
-          data.printf_P(PSTR("%crw%cr-%cr-%c    %c    0    0  %8lu %s %s\r\n"),
+          data.printf_P(PSTR("%crw%cr-%cr-%c    %c    0    0  %8" PRINTu32 " %s %s\r\n"),
                         isDir ? 'd' : '-',
                         isDir ? 'x' : '-',
                         isDir ? 'x' : '-',
                         isDir ? 'x' : '-',
                         isDir ? '2' : '1',
-                        isDir ? 0 : (uint32_t)dir.fileSize(),
+                        isDir ? 0 : fs,
                         fileTime.c_str(),
                         fn.c_str());
           //data.printf_P(PSTR("+r,s%lu\r\n,\t%s\r\n"), (uint32_t)dir.fileSize(), fn.c_str());
@@ -586,7 +592,7 @@ int8_t FTPServer::processCommand()
           }
           else
           {
-            data.printf_P(PSTR("0644;size=%lu;type=file; "), (uint32_t)dir.fileSize());
+            data.printf_P(PSTR("0644;size=%" PRINTu32 ";type=file; "), fs);
           }
           data.printf_P(PSTR("%s\r\n"), fn.c_str());
         }
@@ -594,123 +600,20 @@ int8_t FTPServer::processCommand()
         {
           data.println(fn);
         }
+        ++dirCount;
+#if (defined ESP32)
+        file = dir.openNextFile();
+#endif
       }
-
+    
       if (FTP_CMD(MLSD) == command)
       {
         control.println(F("226-options: -a -l\r\n"));
       }
       sendMessage_P(226, PSTR("%d matches total"), dirCount);
     }
-#if defined ESP32
-    File root = THEFS.open(cwd);
-    if (!root)
-    {
-      sendMessage_P(550, PSTR("Can't open directory \"%s\""), cwd.c_str());
-      // return;
-    }
-    else
-    {
-      // if(!root.isDirectory()){
-      // 		FTP_DEBUG_MSG("Not a directory: '%s'", cwd.c_str());
-      // 		return;
-      // }
-
-      File file = root.openNextFile();
-      while (file)
-      {
-        if (file.isDirectory())
-        {
-          data.println("+r,s <DIR> " + String(file.name()));
-          // Serial.print("  DIR : ");
-          // Serial.println(file.name());
-          // if(levels){
-          // 	listDir(fs, file.name(), levels -1);
-          // }
-        }
-        else
-        {
-          String fn, fs;
-          fn = file.name();
-          // fn.remove(0, 1);
-          fs = String(file.size());
-          data.println("+r,s" + fs);
-          data.println(",\t" + fn);
-          nm++;
-        }
-        file = root.openNextFile();
-      }
-      sendMessage_P(226, PSTR("%d matches total"), nm);
-    }
-#endif
     data.stop();
   }
-
-#if defined ESP32
-  //
-  //  FIXME MLSD ESP32
-  //
-  else if (!strcmp(command, "MLSD"))
-  {
-    File root = THEFS.open(cwd);
-    // if(!root){
-    // 		control.println( "550, "Can't open directory " + cwd );
-    // 		// return;
-    // } else {
-    // if(!root.isDirectory()){
-    // 		Serial.println("Not a directory");
-    // 		return;
-    // }
-
-    File file = root.openNextFile();
-    while (file)
-    {
-      // if(file.isDirectory()){
-      // 	data.println( "+r,s <DIR> " + String(file.name()));
-      // 	// Serial.print("  DIR : ");
-      // 	// Serial.println(file.name());
-      // 	// if(levels){
-      // 	// 	listDir(fs, file.name(), levels -1);
-      // 	// }
-      // } else {
-      String fn, fs;
-      fn = file.name();
-      fn.remove(0, 1);
-      fs = String(file.size());
-      data.println("Type=file;Size=" + fs + ";" + "modify=20000101160656;" + " " + fn);
-      nm++;
-      // }
-      file = root.openNextFile();
-    }
-    sendMessage_P(226, PSTR("-options: -a -l"));
-    sendMessage_P(226, PSTR("%d matches total"), nm);
-    // }
-    data.stop();
-  }
-  //
-  // NLST
-  //
-  else if (!strcmp(command, "NLST"))
-  {
-    File root = THEFS.open(cwd);
-    if (!root)
-    {
-      sendMessage_P(550, "Can't open directory %s\n"), cwd.c_str());
-    }
-    else
-    {
-      File file = root.openNextFile();
-      while (file)
-      {
-        data.println(file.name());
-        nm++;
-        file = root.openNextFile();
-      }
-      sendMessage_P(226, "%d matches total", nm);
-    }
-    data.stop();
-  }
-#endif
 
   //
   //  RETR - Retrieve
@@ -730,7 +633,7 @@ int8_t FTPServer::processCommand()
       {
         sendMessage_P(550, PSTR("File \"%s\" not found."), parameters.c_str());
       }
-      else if (!file.isFile())
+      else if (file.isDirectory())
       {
         sendMessage_P(450, PSTR("Cannot open file \"%s\"."), parameters.c_str());
       }
@@ -748,7 +651,7 @@ int8_t FTPServer::processCommand()
           millisBeginTrans = millis();
           bytesTransfered = 0;
           uint32_t fs = file.size();
-          if (allocateBuffer(TCP_MSS))
+          if (allocateBuffer())
           {
             FTP_DEBUG_MSG("Sending file '%s' (%lu bytes)", path.c_str(), fs);
             sendMessage_P(150, PSTR("%lu bytes to download"), fs);
@@ -795,7 +698,7 @@ int8_t FTPServer::processCommand()
           transferState = tStore;
           millisBeginTrans = millis();
           bytesTransfered = 0;
-          if (allocateBuffer(TCP_MSS))
+          if (allocateBuffer())
           {
             FTP_DEBUG_MSG("Receiving file '%s' => %s", parameters.c_str(), path.c_str());
             sendMessage_P(150, PSTR("Connected to port %d"), dataPort);
@@ -839,9 +742,17 @@ int8_t FTPServer::processCommand()
     sendMessage_P(550, "Remove directory operation failed."); //not support on SPIFFS
 #else
     // check directory for files
+#if (defined ESP8266)
     Dir dir = THEFS.openDir(path);
     if (dir.next())
     {
+#elif (defined ESP32)
+    File dir = THEFS.open(path);
+    file = dir.openNextFile();
+    if (file)
+    {
+      file.close();
+#endif
       //only delete if dir is empty!
       sendMessage_P(550, PSTR("Remove directory operation failed, directory is not empty."));
     }

@@ -1,7 +1,6 @@
 #include "FTPCommon.h"
 
-FTPCommon::FTPCommon(FS &_FSImplementation) : 
-    THEFS(_FSImplementation), sTimeOutMs(FTP_TIME_OUT*60*1000), aTimeout(FTP_TIME_OUT*60*1000)
+FTPCommon::FTPCommon(FS &_FSImplementation) : THEFS(_FSImplementation), sTimeOutMs(FTP_TIME_OUT * 60 * 1000), aTimeout(FTP_TIME_OUT * 60 * 1000)
 {
 }
 
@@ -23,14 +22,17 @@ void FTPCommon::setTimeout(uint32_t timeoutMs)
     sTimeOutMs = timeoutMs;
 }
 
+//
+// allocate a big buffer for file transfers
+//
 uint16_t FTPCommon::allocateBuffer(uint16_t desiredBytes)
 {
-    // allocate a big buffer for file transfers
+#if (defined ESP8266)
     uint16_t maxBlock = ESP.getMaxFreeBlockSize() / 2;
 
     if (desiredBytes > maxBlock)
         desiredBytes = maxBlock;
-
+#endif
     while (fileBuffer == NULL && desiredBytes > 0)
     {
         fileBuffer = (uint8_t *)malloc(desiredBytes);
@@ -141,7 +143,7 @@ bool FTPCommon::doNetworkToFile()
 
 void FTPCommon::closeTransfer()
 {
-  freeBuffer();
-  file.close();
-  data.stop();
+    freeBuffer();
+    file.close();
+    data.stop();
 }

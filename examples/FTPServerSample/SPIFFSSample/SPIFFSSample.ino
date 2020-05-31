@@ -15,18 +15,18 @@
    Daniel Plasa <dplasa@gmail.com>
 
 */
-#ifdef ESP8266
-#include <FS.h>
-#include <ESP8266WiFi.h>
-#elif defined ESP32
+#if (defined ESP32)
 #include <WiFi.h>
 #include <SPIFFS.h>
+#elif (defined ESP8266)
+#include <ESP8266WiFi.h>
+#include <FS.h>
 #endif
 
 #include <FTPServer.h>
 
-const char *ssid PROGMEM = "YOUR_SSID";
-const char *password PROGMEM = "YOUR_PASS";
+const char *ssid = "YOUR_SSID";
+const char *password = "YOUR_PASS";
 
 // Since SPIFFS is becoming deprecated but might still be in
 // use in your Projects, tell the FtpServer to use SPIFFS
@@ -38,7 +38,7 @@ void setup(void)
   WiFi.begin(ssid, password);
 
   bool fsok = SPIFFS.begin();
-  Serial.printf_P(PSTR("FS init: %S\n"), fsok ? PSTR("ok") : PSTR("fail!"));
+  Serial.printf_P(PSTR("FS init: %s\n"), fsok ? PSTR("ok") : PSTR("fail!"));
 
   // Wait for connection
   while (WiFi.status() != WL_CONNECTED)
@@ -46,10 +46,10 @@ void setup(void)
     delay(500);
     Serial.printf_P(PSTR("."));
   }
-  Serial.printf_P(PSTR("\nConnected to %S, IP address is %s\n"), ssid, WiFi.localIP().toString().c_str());
+  Serial.printf_P(PSTR("\nConnected to %s, IP address is %s\n"), ssid, WiFi.localIP().toString().c_str());
 
   // setup the ftp server with username and password
-  // ports are defined in esFTP.h, default is
+  // ports are defined in FTPCommon.h, default is
   //   21 for the control connection
   //   50009 for the data connection (passive mode by default)
   ftpSrv.begin(F("ftp"), F("ftp"));
@@ -102,14 +102,59 @@ void loop(void)
   else if (action == list)
   {
     Serial.printf_P(PSTR("Listing contents...\n"));
-    uint16_t dirCount = 0;
-    Dir dir = SPIFFS.openDir(F("/"));
-    while (dir.next())
-    {
-      ++dirCount;
-      Serial.printf_P(PSTR("%6ld  %s\n"), (uint32_t)dir.fileSize(), dir.fileName().c_str());
-    }
+    uint16_t dirCount = ListDir("/");
     Serial.printf_P(PSTR("%d files total\n"), dirCount);
     action = show;
   }
 }
+
+#if (defined ESP8266)
+uint16_t ListDir(const char *path)
+{
+  uint16_t dirCount = 0;
+  Dir dir = SPIFFS.openDir(path);
+  while (dir.next())
+  {
+    ++dirCount;
+    Serial.printf_P(PSTR("%6ld  %s\n"), (uint32_t)dir.fileSize(), dir.fileName().c_str());
+  }
+  return dirCount;
+}
+#elif (defined ESP32)
+uint16_t ListDir(const char *path)
+{
+  uint16_t dirCount = 0;
+  File root = SPIFFS.open(path);
+  if (!root)
+  {
+    Serial.println(F("failed to open root"));
+    return 0;
+  }
+  if (!root.isDirectory())
+  {
+    Serial.println(F("/ not a directory"));
+    return 0;
+  }
+
+  File file = root.openNextFile();
+  while (file)
+  {
+    ++dirCount;
+    if (file.isDirectory())
+    {
+      Serial.print(F("  DIR : "));
+      Serial.println(file.name());
+      dirCount += ListDir(file.name());
+    }
+    else
+    {
+      Serial.print(F("  FILE: "));
+      Serial.print(file.name());
+      Serial.print(F("\tSIZE: "));
+      Serial.println(file.size());
+    }
+    file = root.openNextFile();
+  }
+  return dirCount;
+}
+#endif
