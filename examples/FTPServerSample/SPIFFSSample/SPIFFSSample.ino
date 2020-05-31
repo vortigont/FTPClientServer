@@ -18,9 +18,11 @@
 #if (defined ESP32)
 #include <WiFi.h>
 #include <SPIFFS.h>
+#define BAUDRATE 115200
 #elif (defined ESP8266)
 #include <ESP8266WiFi.h>
 #include <FS.h>
+#define BAUDRATE 74880
 #endif
 
 #include <FTPServer.h>
@@ -34,7 +36,7 @@ FTPServer ftpSrv(SPIFFS);
 
 void setup(void)
 {
-  Serial.begin(74880);
+  Serial.begin(BAUDRATE);
   WiFi.begin(ssid, password);
 
   bool fsok = SPIFFS.begin();
@@ -72,7 +74,7 @@ void loop(void)
   ftpSrv.handleFTP();
 
   //
-  // Code below just to debug in Serial Monitor
+  // Code below just for debugging in Serial Monitor
   //
   if (action == show)
   {
@@ -112,7 +114,7 @@ void loop(void)
 uint16_t ListDir(const char *path)
 {
   uint16_t dirCount = 0;
-  Dir dir = SPIFFS.openDir(path);
+  Dir dir = SPIFFS.openDir(path, "r");
   while (dir.next())
   {
     ++dirCount;

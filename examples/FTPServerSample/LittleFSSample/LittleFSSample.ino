@@ -22,6 +22,7 @@
 #include <ESP8266WiFi.h>
 #include <LittleFS.h>
 #include <FTPServer.h>
+#define BAUDRATE 74880
 
 const char *ssid PROGMEM = "YOUR_SSID";
 const char *password PROGMEM = "YOUR_PASS";
@@ -31,7 +32,7 @@ FTPServer ftpSrv(LittleFS);
 
 void setup(void)
 {
-  Serial.begin(74880);
+  Serial.begin(BAUDRATE);
   WiFi.begin(ssid, password);
 
   bool fsok = LittleFS.begin();
