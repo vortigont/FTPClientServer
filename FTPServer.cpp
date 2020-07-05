@@ -127,7 +127,6 @@ void FTPServer::handleFTP()
     iniVariables();
     cmdState = cWait;
   }
-
   else if (cmdState == cWait) // FTP control server waiting for connection
   {
     if (controlServer.hasClient())
@@ -435,6 +434,7 @@ int8_t FTPServer::processCommand()
     String ip = control.localIP().toString();
     ip.replace(".", ",");
     sendMessage_P(227, PSTR("Entering Passive Mode (%s,%d,%d)."), ip.c_str(), dataPort >> 8, dataPort & 255);
+    //sendMessage_P(227, PSTR("Entering Passive Mode (0,0,0,0,%d,%d)."), dataPort >> 8, dataPort & 255);
   }
 
   //
@@ -605,7 +605,7 @@ int8_t FTPServer::processCommand()
         file = dir.openNextFile();
 #endif
       }
-    
+
       if (FTP_CMD(MLSD) == command)
       {
         control.println(F("226-options: -a -l\r\n"));
@@ -679,7 +679,12 @@ int8_t FTPServer::processCommand()
     {
       FTP_DEBUG_MSG("STOR '%s'", path.c_str());
       if (!file)
-        file = THEFS.open(path, "w");
+      {
+        file = THEFS.open(path, "w"); // open file, truncate it if already exists
+        f.close();                    // this performs a sync on LittleFS so that the actual
+                                      // space used by the file in FS gets released
+        file = THEFS.open(path, "w"); // re-open file for writing
+      }
       if (!file)
       {
         sendMessage_P(451, PSTR("Cannot open/create \"%s\""), path.c_str());
@@ -1136,7 +1141,7 @@ String FTPServer::makeDateTimeStr(time_t ft)
 //
 void FTPServer::sendMessage_P(int16_t code, PGM_P fmt, ...)
 {
-  FTP_DEBUG_MSG(">>> %d %S", code, fmt);
+  FTP_DEBUG_MSG(">>> %d %s", code, fmt);
 
   int size = 0;
   char *p = NULL;
