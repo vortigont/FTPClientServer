@@ -35,7 +35,7 @@ void setup(void)
   WiFi.begin(ssid, password);
 
   bool fsok = LittleFS.begin();
-  Serial.printf_P(PSTR("FS init: %S\n"), fsok ? PSTR("ok") : PSTR("fail!"));
+  Serial.printf_P(PSTR("FS init: %s\n"), fsok ? PSTR("ok") : PSTR("fail!"));
 
   // Wait for connection
   while (WiFi.status() != WL_CONNECTED)
@@ -43,7 +43,7 @@ void setup(void)
     delay(500);
     Serial.printf_P(PSTR("."));
   }
-  Serial.printf_P(PSTR("\nConnected to %S, IP address is %s\n"), ssid, WiFi.localIP().toString().c_str());
+  Serial.printf_P(PSTR("\nConnected to %s, IP address is %s\n"), ssid, WiFi.localIP().toString().c_str());
 
   ftpClient.begin(ftpServerInfo);
 }

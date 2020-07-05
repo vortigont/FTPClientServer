@@ -214,7 +214,7 @@ int8_t FTPClient::controlConnect()
     FTP_DEBUG_MSG("Ignoring CA verification - FTP only");
   }
   control.connect(_server->servername.c_str(), _server->port);
-  FTP_DEBUG_MSG("Connection to %s:%d ... %S", _server->servername.c_str(), _server->port, control.connected() ? PSTR("OK") : PSTR("failed"));
+  FTP_DEBUG_MSG("Connection to %s:%d ... %s", _server->servername.c_str(), _server->port, control.connected() ? PSTR("OK") : PSTR("failed"));
   if (control.connected())
     return 1;
   return -1;

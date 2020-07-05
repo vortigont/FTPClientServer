@@ -143,7 +143,7 @@ bool FTPCommon::doNetworkToFile()
 
 void FTPCommon::closeTransfer()
 {
-    freeBuffer();
-    file.close();
     data.stop();
+    file.close();
+    freeBuffer();
 }
