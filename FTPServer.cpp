@@ -681,7 +681,7 @@ int8_t FTPServer::processCommand()
       if (!file)
       {
         file = THEFS.open(path, "w"); // open file, truncate it if already exists
-        f.close();                    // this performs a sync on LittleFS so that the actual
+        file.close();                    // this performs a sync on LittleFS so that the actual
                                       // space used by the file in FS gets released
         file = THEFS.open(path, "w"); // re-open file for writing
       }
