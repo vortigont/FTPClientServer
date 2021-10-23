@@ -127,7 +127,7 @@ protected:
     bool parseDataIpPort(const char *p);
 
     uint32_t sTimeOutMs; // disconnect timeout
-    oneShotMs aTimeout;  // timeout from esp8266 core library
+    oneShotFastMs aTimeout;  // timeout from esp8266 core library
 
     bool doFiletoNetwork();
     bool doNetworkToFile();
