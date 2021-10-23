@@ -27,7 +27,7 @@
 
 #include <Arduino.h>
 
-namespace ESP8266
+namespace esp8266
 {
 
 
