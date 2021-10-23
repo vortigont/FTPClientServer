@@ -8,12 +8,12 @@
 
 #ifdef ESP8266
 #include <PolledTimeout.h>
-using esp8266::polledTimeout::oneShotFastMs; // import the type to the local namespace
+using polledTimeout::oneShotFastMs; // import the type to the local namespace
 #define BUFFERSIZE TCP_MSS
 #define PRINTu32 "lu"
 #elif defined ESP32
 #include "esp32compat/PolledTimeout.h"
-using esp32::polledTimeout::oneShotFastMs;
+using polledTimeout::oneShotFastMs;
 #define BUFFERSIZE CONFIG_TCP_MSS
 #define PRINTu32 "u"
 #endif
