@@ -27,7 +27,7 @@
 
 #include <Arduino.h>
 
-namespace esp8266
+namespace esp8266Pool
 {
 
 
