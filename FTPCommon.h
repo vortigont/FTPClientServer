@@ -7,7 +7,7 @@
 #include <WString.h>
 
 #ifdef ESP8266
-#include <PolledTimeout.h>
+#include "esp8266compat/PolledTimeout.h"
 using esp8266::polledTimeout::oneShotMs; // import the type to the local namespace
 #define BUFFERSIZE TCP_MSS
 #define PRINTu32 "lu"
