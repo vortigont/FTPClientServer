@@ -8,12 +8,12 @@
 
 #ifdef ESP8266
 #include <PolledTimeout.h>
-using polledTimeout::oneShotFastMs; // import the type to the local namespace
+using arduino::esp8266::polledTimeout::oneShotMs; // import the type to the local namespace
 #define BUFFERSIZE TCP_MSS
 #define PRINTu32 "lu"
 #elif defined ESP32
 #include "esp32compat/PolledTimeout.h"
-using polledTimeout::oneShotFastMs;
+using arduino::esp8266::polledTimeout::oneShotMs;
 #define BUFFERSIZE CONFIG_TCP_MSS
 #define PRINTu32 "u"
 #endif
@@ -127,7 +127,7 @@ protected:
     bool parseDataIpPort(const char *p);
 
     uint32_t sTimeOutMs; // disconnect timeout
-    oneShotFastMs aTimeout;  // timeout from esp8266 core library
+    oneShotMs aTimeout;  // timeout from esp8266 core library
 
     bool doFiletoNetwork();
     bool doNetworkToFile();
