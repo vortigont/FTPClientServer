@@ -27,7 +27,7 @@
 
 #include <Arduino.h>
 
-namespace ESP32
+namespace esp32Pool
 {
 
 
