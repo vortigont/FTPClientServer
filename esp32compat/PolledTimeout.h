@@ -27,7 +27,7 @@
 
 #include <Arduino.h>
 
-namespace esp32
+namespace ESP32
 {
 
 
