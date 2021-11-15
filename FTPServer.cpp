@@ -46,11 +46,10 @@ FTPServer::FTPServer(FS &_FSImplementation) : FTPCommon(_FSImplementation)
   aTimeout.resetToNeverExpires();
 }
 
-void FTPServer::begin(const String &uname, const String &pword, boolean _bUnixLst)
+void FTPServer::begin(const String &uname, const String &pword)
 {
   _FTP_USER = uname;
   _FTP_PASS = pword;
-  bUnixLst = _bUnixLst;
 
   iniVariables();
 
@@ -563,8 +562,11 @@ int8_t FTPServer::processCommand()
         uint32_t fs = file.size();
         String fileTime = makeDateTimeStr(file.getLastWrite());
         file.close();
-        if (cwd == FPSTR(aSlash) && fn[0] == '/')
-          fn.remove(0, 1);
+        dashPos = fn.lastIndexOf(F("/"));
+        if (dashPos >= 0)
+        {
+          fn.remove(0, dashPos + 1);
+        }
 
         if (FTP_CMD(LIST) == command)
         {
