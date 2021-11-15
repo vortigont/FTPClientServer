@@ -46,10 +46,11 @@ FTPServer::FTPServer(FS &_FSImplementation) : FTPCommon(_FSImplementation)
   aTimeout.resetToNeverExpires();
 }
 
-void FTPServer::begin(const String &uname, const String &pword)
+void FTPServer::begin(const String &uname, const String &pword, boolean _bUnixLst)
 {
   _FTP_USER = uname;
   _FTP_PASS = pword;
+  bUnixLst = _bUnixLst;
 
   iniVariables();
 
