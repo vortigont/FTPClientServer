@@ -27,7 +27,7 @@
 
 #include <Arduino.h>
 
-namespace esp32Pool
+namespace esp8266Pool
 {
 
 
@@ -66,6 +66,18 @@ struct TimeSourceMillis
   static timeType time() {return millis();}
   static constexpr timeType ticksPerSecond    = 1000;
   static constexpr timeType ticksPerSecondMax = 1000;
+};
+
+struct TimeSourceCycles
+{
+  // time policy based on ESP.getCycleCount()
+  // this particular time measurement is intended to be called very often
+  // (every loop, every yield)
+
+  using timeType = decltype(ESP.getCycleCount());
+  static timeType time() {return ESP.getCycleCount();}
+  static constexpr timeType ticksPerSecond    = F_CPU;     // 80'000'000 or 160'000'000 Hz
+  static constexpr timeType ticksPerSecondMax = 160000000; // 160MHz
 };
 
 template <typename TimeSourceType, unsigned long long second_th>
@@ -119,6 +131,9 @@ struct TimeUnit
 };
 
 using TimeMillis     = TimeUnit< TimeSourceMillis,       1000 >;
+using TimeFastMillis = TimeUnit< TimeSourceCycles,       1000 >;
+using TimeFastMicros = TimeUnit< TimeSourceCycles,    1000000 >;
+using TimeFastNanos  = TimeUnit< TimeSourceCycles, 1000000000 >;
 
 } //TimePolicy
 
@@ -233,22 +248,42 @@ protected:
   bool _neverExpires;
 };
 
+// legacy type names, deprecated (unit is milliseconds)
+
+using oneShot = polledTimeout::timeoutTemplate<false> /*__attribute__((deprecated("use oneShotMs")))*/;
+using periodic = polledTimeout::timeoutTemplate<true> /*__attribute__((deprecated("use periodicMs")))*/;
+
 // standard versions (based on millis())
 // timeMax() is 49.7 days ((2^32)-2 ms)
 
 using oneShotMs = polledTimeout::timeoutTemplate<false>;
 using periodicMs = polledTimeout::timeoutTemplate<true>;
 
+// Time policy based on ESP.getCycleCount(), and intended to be called very often:
+// "Fast" versions sacrifices time range for improved precision and reduced execution time (by 86%)
+// (cpu cycles for ::expired(): 372 (millis()) vs 52 (ESP.getCycleCount()))
+// timeMax() values:
+// Ms: max is 26843       ms (26.8  s)
+// Us: max is 26843545    us (26.8  s)
+// Ns: max is  1073741823 ns ( 1.07 s)
+// (time policy based on ESP.getCycleCount() is intended to be called very often)
+
+using oneShotFastMs = polledTimeout::timeoutTemplate<false, YieldPolicy::DoNothing, TimePolicy::TimeFastMillis>;
+using periodicFastMs = polledTimeout::timeoutTemplate<true, YieldPolicy::DoNothing, TimePolicy::TimeFastMillis>;
+using oneShotFastUs = polledTimeout::timeoutTemplate<false, YieldPolicy::DoNothing, TimePolicy::TimeFastMicros>;
+using periodicFastUs = polledTimeout::timeoutTemplate<true, YieldPolicy::DoNothing, TimePolicy::TimeFastMicros>;
+using oneShotFastNs = polledTimeout::timeoutTemplate<false, YieldPolicy::DoNothing, TimePolicy::TimeFastNanos>;
+using periodicFastNs = polledTimeout::timeoutTemplate<true, YieldPolicy::DoNothing, TimePolicy::TimeFastNanos>;
 
 } //polledTimeout
 
 
 /* A 1-shot timeout that auto-yields when in CONT can be built as follows:
- * using oneShotYieldMs = esp32::polledTimeout::timeoutTemplate<false, esp32::polledTimeout::YieldPolicy::YieldOrSkip>;
+ * using oneShotYieldMs = esp8266::polledTimeout::timeoutTemplate<false, esp8266::polledTimeout::YieldPolicy::YieldOrSkip>;
  *
  * Other policies can be implemented by the user, e.g.: simple yield that panics in SYS, and the polledTimeout types built as needed as shown above, without modifying this file.
  */
 
-}//esp32
+}//esp8266
 
 #endif
