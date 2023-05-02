@@ -110,7 +110,7 @@ protected:
 
 	int8_t controlConnect(); // connects to ServerInfo, returns -1: no connection possible, +1: connection established
 
-	bool waitFor(const int16_t respCode, const __FlashStringHelper *errorString = nullptr, uint32_t timeOut = 10000);
+	bool waitFor(const int16_t respCode, const String &errorString = (const char*)NULL, uint32_t timeOut = 10000);
 };
 
 #endif // FTP_CLIENT_H

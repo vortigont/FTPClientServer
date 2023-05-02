@@ -220,7 +220,7 @@ int8_t FTPClient::controlConnect()
   return -1;
 }
 
-bool FTPClient::waitFor(const int16_t respCode, const __FlashStringHelper *errorString, uint32_t timeOutMs)
+bool FTPClient::waitFor(const int16_t respCode, const String &errorString, uint32_t timeOutMs)
 {
   // initalize waiting
   if (!aTimeout.canExpire())
