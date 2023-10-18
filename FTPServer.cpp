@@ -131,7 +131,7 @@ void FTPServer::handleFTP()
   {
     if (controlServer.hasClient())
     {
-      control = controlServer.available();
+      control = controlServer.accept();
 
       // wait 10s for login command
       aTimeout.reset(10 * 1000);
