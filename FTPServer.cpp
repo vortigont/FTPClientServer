@@ -573,7 +573,7 @@ int8_t FTPServer::processCommand()
           // unixperms  type userid   groupid      size time & date  name
           // drwxrwsr-x    2 111      117          4096 Apr 01 12:45 aDirectory
           // -rw-rw-r--    1 111      117        875315 Mar 23 17:29 aFile
-          data.printf_P(PSTR("%crw%cr-%cr-%c    %c    0    0  %8" PRINTu32 " %s %s\r\n"),
+          data.printf_P(PSTR("%crw%cr-%cr-%c    %c    0    0  %8l" PRINTu32 " %s %s\n"),
                         isDir ? 'd' : '-',
                         isDir ? 'x' : '-',
                         isDir ? 'x' : '-',
@@ -595,7 +595,7 @@ int8_t FTPServer::processCommand()
           }
           else
           {
-            data.printf_P(PSTR("0644;size=%" PRINTu32 ";type=file; "), fs);
+            data.printf_P(PSTR("0644;size=%l" PRINTu32 ";type=file; "), fs);
           }
           data.printf_P(PSTR("%s\r\n"), fn.c_str());
         }
@@ -908,7 +908,7 @@ int8_t FTPServer::dataConnect()
       if (dataServer.hasClient())
       {
         data.stop();
-        data = dataServer.available();
+        data = dataServer.accept();
         FTP_DEBUG_MSG("Got incoming (passive) data connection from %s:%u", data.remoteIP().toString().c_str(), data.remotePort());
       }
       else
