@@ -131,7 +131,8 @@ void FTPServer::handleFTP()
   {
     if (controlServer.hasClient())
     {
-      control = controlServer.accept();
+      //control = controlServer.accept();
+      control = controlServer.available();
 
       // wait 10s for login command
       aTimeout.reset(10 * 1000);
@@ -908,7 +909,8 @@ int8_t FTPServer::dataConnect()
       if (dataServer.hasClient())
       {
         data.stop();
-        data = dataServer.accept();
+        //data = dataServer.accept();
+        data = dataServer.available();
         FTP_DEBUG_MSG("Got incoming (passive) data connection from %s:%u", data.remoteIP().toString().c_str(), data.remotePort());
       }
       else
